@@ -1,0 +1,915 @@
+{
+  "alerts": [
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 0,
+      "reportByMunicipalityUser": "false",
+      "confidence": 1,
+      "reliability": 8,
+      "type": "HAZARD",
+      "uuid": "8d5b9bb5-a13a-4bb0-b936-36c7ade916ed",
+      "roadType": 1,
+      "magvar": 216,
+      "subtype": "HAZARD_ON_ROAD_POT_HOLE",
+      "street": "R. Terezina",
+      "location": {
+        "x": -51.169885,
+        "y": -23.304287
+      },
+      "pubMillis": 1776721285000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 0,
+      "reportByMunicipalityUser": "false",
+      "confidence": 1,
+      "reliability": 7,
+      "type": "HAZARD",
+      "uuid": "9ecf2019-ee5d-45e3-abde-31a9ad01cca8",
+      "roadType": 1,
+      "magvar": 83,
+      "subtype": "HAZARD_ON_ROAD_POT_HOLE",
+      "street": "R. Sebastião Chapp Galindo",
+      "location": {
+        "x": -51.18223,
+        "y": -23.327057
+      },
+      "pubMillis": 1776720450000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 5,
+      "reportByMunicipalityUser": "false",
+      "confidence": 1,
+      "reliability": 9,
+      "type": "ROAD_CLOSED",
+      "uuid": "ccfd961a-068c-439b-a03e-76f65c1767be",
+      "roadType": 1,
+      "magvar": 192,
+      "subtype": "",
+      "street": "R. Constantino Pialarissi",
+      "reportDescription": "",
+      "location": {
+        "x": -51.194238,
+        "y": -23.330004
+      },
+      "pubMillis": 1767878496000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 5,
+      "reportByMunicipalityUser": "false",
+      "confidence": 0,
+      "reliability": 7,
+      "type": "ROAD_CLOSED",
+      "uuid": "8359fcdb-6fc0-4f38-87ea-fb96dee1f726",
+      "roadType": 1,
+      "magvar": 247,
+      "subtype": "",
+      "street": "R. Constantino Pialarissi",
+      "reportDescription": "",
+      "location": {
+        "x": -51.195046,
+        "y": -23.342266
+      },
+      "pubMillis": 1767878496000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 2,
+      "reportByMunicipalityUser": "false",
+      "confidence": 1,
+      "reliability": 7,
+      "type": "HAZARD",
+      "uuid": "ffb95fa5-b492-47d4-976f-4700aa7d1ac1",
+      "roadType": 1,
+      "magvar": 105,
+      "subtype": "HAZARD_ON_ROAD_POT_HOLE",
+      "street": "R. José Farias",
+      "location": {
+        "x": -51.194188,
+        "y": -23.321263
+      },
+      "pubMillis": 1776692181000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 3,
+      "reportByMunicipalityUser": "false",
+      "confidence": 0,
+      "reliability": 5,
+      "type": "HAZARD",
+      "uuid": "55f1e562-14f8-4695-a392-a504b5e56f5d",
+      "roadType": 1,
+      "magvar": 262,
+      "subtype": "HAZARD_ON_ROAD_CONSTRUCTION",
+      "street": "R. Kioto Okawati",
+      "location": {
+        "x": -51.181316,
+        "y": -23.320687
+      },
+      "pubMillis": 1776780204000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 5,
+      "reportByMunicipalityUser": "false",
+      "confidence": 0,
+      "reliability": 6,
+      "type": "ROAD_CLOSED",
+      "uuid": "45ef3012-b61b-476d-b3fd-ee809c09973f",
+      "roadType": 1,
+      "magvar": 183,
+      "subtype": "",
+      "street": "R. Constantino Pialarissi",
+      "reportDescription": "",
+      "location": {
+        "x": -51.194025,
+        "y": -23.326385
+      },
+      "pubMillis": 1775766737000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 0,
+      "reportByMunicipalityUser": "false",
+      "confidence": 5,
+      "reliability": 10,
+      "type": "HAZARD",
+      "uuid": "ecb36753-40cf-4171-8c3e-e33c9c9dcd09",
+      "roadType": 1,
+      "magvar": 171,
+      "subtype": "HAZARD_ON_ROAD_POT_HOLE",
+      "street": "R. João Calvino",
+      "location": {
+        "x": -51.191627,
+        "y": -23.326182
+      },
+      "pubMillis": 1776354729000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 0,
+      "reportByMunicipalityUser": "false",
+      "confidence": 0,
+      "reliability": 5,
+      "type": "HAZARD",
+      "uuid": "68310094-8d69-49b3-a2cd-00b597facb2b",
+      "roadType": 1,
+      "magvar": 124,
+      "subtype": "HAZARD_ON_ROAD_POT_HOLE",
+      "street": "R. Vitória",
+      "location": {
+        "x": -51.170144,
+        "y": -23.305247
+      },
+      "pubMillis": 1776734510000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 5,
+      "reportByMunicipalityUser": "false",
+      "confidence": 0,
+      "reliability": 7,
+      "type": "ROAD_CLOSED",
+      "uuid": "06a4ef3a-e420-486d-b298-5bc2a828c761",
+      "roadType": 1,
+      "magvar": 203,
+      "subtype": "",
+      "street": "R. Constantino Pialarissi",
+      "reportDescription": "",
+      "location": {
+        "x": -51.193926,
+        "y": -23.325479
+      },
+      "pubMillis": 1775766737000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 0,
+      "reportByMunicipalityUser": "false",
+      "confidence": 0,
+      "reliability": 5,
+      "type": "JAM",
+      "uuid": "b0e13f29-03b6-4f5b-b559-63fd6c4e93f9",
+      "roadType": 1,
+      "magvar": 359,
+      "subtype": "",
+      "street": "R. Sebastião de Castro",
+      "location": {
+        "x": -51.197386,
+        "y": -23.311458
+      },
+      "pubMillis": 1776781072000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 5,
+      "reportByMunicipalityUser": "false",
+      "confidence": 1,
+      "reliability": 8,
+      "type": "ROAD_CLOSED",
+      "uuid": "bd684299-0acf-4a33-b425-c6ed2bb97c1f",
+      "roadType": 1,
+      "magvar": 4,
+      "subtype": "",
+      "street": "R. Constantino Pialarissi",
+      "reportDescription": "",
+      "location": {
+        "x": -51.194074,
+        "y": -23.328059
+      },
+      "pubMillis": 1775766737000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 3,
+      "reportByMunicipalityUser": "false",
+      "confidence": 0,
+      "reliability": 6,
+      "type": "HAZARD",
+      "uuid": "778d6cab-c5f4-437e-969a-e8ceec7b45a5",
+      "roadType": 1,
+      "magvar": 242,
+      "subtype": "HAZARD_ON_ROAD_LANE_CLOSED",
+      "street": "R. Kioto Okawati",
+      "location": {
+        "x": -51.181041,
+        "y": -23.320598
+      },
+      "pubMillis": 1776780199000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 1,
+      "reportByMunicipalityUser": "false",
+      "confidence": 0,
+      "reliability": 6,
+      "type": "HAZARD",
+      "uuid": "b45e11cf-c484-4da8-b6ee-e2f997ea4598",
+      "roadType": 1,
+      "magvar": 90,
+      "subtype": "HAZARD_ON_ROAD_CONSTRUCTION",
+      "street": "R. Piauí",
+      "location": {
+        "x": -51.162466,
+        "y": -23.313308
+      },
+      "pubMillis": 1776780129000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 2,
+      "reportByMunicipalityUser": "false",
+      "confidence": 0,
+      "reliability": 5,
+      "type": "JAM",
+      "uuid": "4b3b5863-fe17-4716-a5d9-b86fa02f3006",
+      "roadType": 1,
+      "magvar": 15,
+      "subtype": "",
+      "street": "R. Sílvio Bussadori",
+      "location": {
+        "x": -51.196452,
+        "y": -23.315531
+      },
+      "pubMillis": 1776782221000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 0,
+      "reportByMunicipalityUser": "false",
+      "confidence": 0,
+      "reliability": 5,
+      "type": "HAZARD",
+      "uuid": "a4b706ef-bf01-4060-bb39-b27a8d9c0406",
+      "roadType": 1,
+      "magvar": 7,
+      "subtype": "HAZARD_WEATHER",
+      "street": "R. Maceió",
+      "location": {
+        "x": -51.17309,
+        "y": -23.302048
+      },
+      "pubMillis": 1776782304000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 2,
+      "reportByMunicipalityUser": "false",
+      "confidence": 0,
+      "reliability": 7,
+      "type": "HAZARD",
+      "uuid": "48021127-3fb0-455f-a44c-0992baeec261",
+      "roadType": 2,
+      "magvar": 358,
+      "subtype": "HAZARD_ON_SHOULDER_CAR_STOPPED",
+      "street": "R. Prof. João Cândido",
+      "location": {
+        "x": -51.161472,
+        "y": -23.314512
+      },
+      "pubMillis": 1776781581000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 4,
+      "reportByMunicipalityUser": "false",
+      "confidence": 5,
+      "reliability": 10,
+      "type": "HAZARD",
+      "uuid": "9df51e37-9268-4996-aea4-a5dba96fe1f5",
+      "roadType": 2,
+      "magvar": 240,
+      "subtype": "HAZARD_ON_ROAD_POT_HOLE",
+      "street": "R. da Ginástica Olímpica",
+      "location": {
+        "x": -51.224169,
+        "y": -23.323961
+      },
+      "pubMillis": 1776630697000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 0,
+      "reportByMunicipalityUser": "false",
+      "confidence": 1,
+      "reliability": 8,
+      "type": "HAZARD",
+      "uuid": "e8333c23-d196-49db-bbf6-37dcfa0f4c2e",
+      "roadType": 2,
+      "magvar": 121,
+      "subtype": "HAZARD_ON_ROAD_POT_HOLE",
+      "street": "Marg. PR-445",
+      "location": {
+        "x": -51.207635,
+        "y": -23.320388
+      },
+      "pubMillis": 1776780638000
+    },
+    {
+      "country": "BR",
+      "city": "Londrina",
+      "reportRating": 1,
+      "reportByMunicipalityUser": "false",
+      "confidence": 5,
+      "reliability": 10,
+      "type": "HAZARD",
+      "uuid": "0f1d8d95-2a94-4173-a4c7-e59656eccab3",
+      "roadType": 2,
+      "magvar": 181,
+      "subtype": "HAZARD_ON_ROAD_POT_HOLE",
+      "street": "R. Foz do Iguaçu",
+      "location": {
+        "x": -51.182348,
+        "y": -23.310292
+      },
+      "pubMillis": 1776652211000
+    }
+  ],
+  "endTimeMillis": 1776782340000,
+  "startTimeMillis": 1776782280000,
+  "startTime": "2026-04-21 14:38:00:000",
+  "endTime": "2026-04-21 14:39:00:000",
+  "jams": [
+    {
+      "country": "BR",
+      "level": 3,
+      "city": "Londrina",
+      "line": [
+        {
+          "x": -51.197103,
+          "y": -23.30825
+        },
+        {
+          "x": -51.196918,
+          "y": -23.307895
+        },
+        {
+          "x": -51.196741,
+          "y": -23.307622
+        },
+        {
+          "x": -51.196594,
+          "y": -23.307427
+        },
+        {
+          "x": -51.196258,
+          "y": -23.30707
+        },
+        {
+          "x": -51.196103,
+          "y": -23.306878
+        },
+        {
+          "x": -51.195931,
+          "y": -23.306629
+        },
+        {
+          "x": -51.195813,
+          "y": -23.306402
+        },
+        {
+          "x": -51.195733,
+          "y": -23.306196
+        },
+        {
+          "x": -51.195679,
+          "y": -23.306008
+        },
+        {
+          "x": -51.195582,
+          "y": -23.305676
+        },
+        {
+          "x": -51.195547,
+          "y": -23.305444
+        },
+        {
+          "x": -51.195537,
+          "y": -23.305146
+        },
+        {
+          "x": -51.19555,
+          "y": -23.304883
+        },
+        {
+          "x": -51.195593,
+          "y": -23.304604
+        },
+        {
+          "x": -51.195647,
+          "y": -23.304392
+        },
+        {
+          "x": -51.195762,
+          "y": -23.304124
+        },
+        {
+          "x": -51.195899,
+          "y": -23.30387
+        },
+        {
+          "x": -51.196001,
+          "y": -23.303717
+        },
+        {
+          "x": -51.196132,
+          "y": -23.303547
+        },
+        {
+          "x": -51.196471,
+          "y": -23.303172
+        }
+      ],
+      "speedKMH": 9.59,
+      "length": 633,
+      "turnType": "NONE",
+      "uuid": 634043162,
+      "endNode": "Av. Arthur Thomas",
+      "speed": 2.6638888888888888,
+      "segments": [
+        {
+          "fromNode": 161254581,
+          "ID": 158745276,
+          "toNode": 161254660,
+          "isForward": false
+        },
+        {
+          "fromNode": 161254660,
+          "ID": 158745495,
+          "toNode": 161254735,
+          "isForward": false
+        },
+        {
+          "fromNode": 161254735,
+          "ID": 158745396,
+          "toNode": 161254673,
+          "isForward": false
+        }
+      ],
+      "roadType": 1,
+      "delay": 155,
+      "street": "R. Johann Gutemberg",
+      "id": 634043162,
+      "pubMillis": 1776781914825
+    },
+    {
+      "country": "BR",
+      "level": 5,
+      "city": "Londrina",
+      "line": [
+        {
+          "x": -51.193926,
+          "y": -23.325479
+        },
+        {
+          "x": -51.193972,
+          "y": -23.325579
+        },
+        {
+          "x": -51.194025,
+          "y": -23.326385
+        }
+      ],
+      "speedKMH": 0,
+      "length": 102,
+      "turnType": "NONE",
+      "uuid": 1247581374,
+      "speed": 0,
+      "segments": [
+        {
+          "fromNode": 161254984,
+          "ID": 470482213,
+          "toNode": 355184992,
+          "isForward": true
+        }
+      ],
+      "blockingAlertUuid": "06a4ef3a-e420-486d-b298-5bc2a828c761",
+      "roadType": 1,
+      "delay": -1,
+      "street": "R. Constantino Pialarissi",
+      "id": 1247581374,
+      "pubMillis": 1775993858040
+    },
+    {
+      "country": "BR",
+      "level": 5,
+      "city": "Londrina",
+      "line": [
+        {
+          "x": -51.194074,
+          "y": -23.328059
+        },
+        {
+          "x": -51.19396,
+          "y": -23.326381
+        }
+      ],
+      "speedKMH": 0,
+      "length": 186,
+      "turnType": "NONE",
+      "uuid": 215875406,
+      "endNode": "R. Agostinho Hass",
+      "speed": 0,
+      "segments": [
+        {
+          "fromNode": 161254960,
+          "ID": 158745783,
+          "toNode": 161254998,
+          "isForward": false
+        }
+      ],
+      "blockingAlertUuid": "bd684299-0acf-4a33-b425-c6ed2bb97c1f",
+      "roadType": 1,
+      "delay": -1,
+      "street": "R. Constantino Pialarissi",
+      "id": 215875406,
+      "pubMillis": 1776519993791
+    },
+    {
+      "country": "BR",
+      "level": 3,
+      "city": "Londrina",
+      "line": [
+        {
+          "x": -51.184105,
+          "y": -23.324959
+        },
+        {
+          "x": -51.184766,
+          "y": -23.321451
+        }
+      ],
+      "speedKMH": 10.95,
+      "length": 394,
+      "turnType": "NONE",
+      "uuid": 634856436,
+      "endNode": "R. Prefeito Faria Lima",
+      "speed": 3.0416666666666665,
+      "segments": [
+        {
+          "fromNode": 161255968,
+          "ID": 379402593,
+          "toNode": 296293014,
+          "isForward": false
+        }
+      ],
+      "roadType": 1,
+      "delay": 90,
+      "street": "R. Flor da Primavera",
+      "id": 634856436,
+      "pubMillis": 1776782061057
+    },
+    {
+      "country": "BR",
+      "level": 5,
+      "city": "Londrina",
+      "line": [
+        {
+          "x": -51.194025,
+          "y": -23.326385
+        },
+        {
+          "x": -51.194125,
+          "y": -23.328059
+        }
+      ],
+      "speedKMH": 0,
+      "length": 186,
+      "turnType": "NONE",
+      "uuid": 1703133254,
+      "endNode": "R. Delaine Negro",
+      "speed": 0,
+      "segments": [
+        {
+          "fromNode": 355184992,
+          "ID": 470469325,
+          "toNode": 355184972,
+          "isForward": false
+        }
+      ],
+      "blockingAlertUuid": "45ef3012-b61b-476d-b3fd-ee809c09973f",
+      "roadType": 1,
+      "delay": -1,
+      "street": "R. Constantino Pialarissi",
+      "id": 1703133254,
+      "pubMillis": 1776242383620
+    },
+    {
+      "country": "BR",
+      "level": 5,
+      "city": "Londrina",
+      "line": [
+        {
+          "x": -51.194238,
+          "y": -23.330004
+        },
+        {
+          "x": -51.194288,
+          "y": -23.330227
+        },
+        {
+          "x": -51.194536,
+          "y": -23.3318
+        },
+        {
+          "x": -51.194852,
+          "y": -23.33202
+        },
+        {
+          "x": -51.194867,
+          "y": -23.332292
+        },
+        {
+          "x": -51.194614,
+          "y": -23.332527
+        },
+        {
+          "x": -51.194762,
+          "y": -23.334585
+        },
+        {
+          "x": -51.194848,
+          "y": -23.335977
+        },
+        {
+          "x": -51.194918,
+          "y": -23.336246
+        },
+        {
+          "x": -51.194882,
+          "y": -23.33661
+        },
+        {
+          "x": -51.19475,
+          "y": -23.336903
+        },
+        {
+          "x": -51.194804,
+          "y": -23.338499
+        },
+        {
+          "x": -51.194957,
+          "y": -23.338651
+        },
+        {
+          "x": -51.194986,
+          "y": -23.339459
+        },
+        {
+          "x": -51.195038,
+          "y": -23.340664
+        },
+        {
+          "x": -51.195165,
+          "y": -23.34156
+        },
+        {
+          "x": -51.195195,
+          "y": -23.341694
+        },
+        {
+          "x": -51.195451,
+          "y": -23.342115
+        },
+        {
+          "x": -51.195407,
+          "y": -23.342294
+        },
+        {
+          "x": -51.195291,
+          "y": -23.342361
+        },
+        {
+          "x": -51.195046,
+          "y": -23.342266
+        }
+      ],
+      "speedKMH": 0,
+      "length": 1451,
+      "turnType": "NONE",
+      "uuid": 215878246,
+      "endNode": "R. Rubens Carlos de Jesus",
+      "speed": 0,
+      "segments": [
+        {
+          "fromNode": 330160931,
+          "ID": 466179941,
+          "toNode": 173292446,
+          "isForward": true
+        }
+      ],
+      "blockingAlertUuid": "ccfd961a-068c-439b-a03e-76f65c1767be",
+      "roadType": 1,
+      "delay": -1,
+      "street": "R. Constantino Pialarissi",
+      "id": 215878246,
+      "pubMillis": 1776412380320
+    },
+    {
+      "country": "BR",
+      "level": 4,
+      "city": "Londrina",
+      "line": [
+        {
+          "x": -51.196701,
+          "y": -23.316336
+        },
+        {
+          "x": -51.196331,
+          "y": -23.315138
+        }
+      ],
+      "speedKMH": 0.78,
+      "length": 138,
+      "turnType": "NONE",
+      "uuid": 635893770,
+      "endNode": "R. Edson Salles Dutra",
+      "speed": 0.21666666666666667,
+      "segments": [
+        {
+          "fromNode": 161254625,
+          "ID": 158745351,
+          "toNode": 161254669,
+          "isForward": false
+        }
+      ],
+      "roadType": 1,
+      "delay": 616,
+      "street": "R. Sílvio Bussadori",
+      "id": 635893770,
+      "pubMillis": 1776782346258
+    },
+    {
+      "country": "BR",
+      "level": 5,
+      "city": "Londrina",
+      "line": [
+        {
+          "x": -51.195046,
+          "y": -23.342266
+        },
+        {
+          "x": -51.195291,
+          "y": -23.342361
+        },
+        {
+          "x": -51.195407,
+          "y": -23.342294
+        },
+        {
+          "x": -51.195451,
+          "y": -23.342115
+        },
+        {
+          "x": -51.195195,
+          "y": -23.341694
+        },
+        {
+          "x": -51.195165,
+          "y": -23.34156
+        },
+        {
+          "x": -51.195038,
+          "y": -23.340664
+        },
+        {
+          "x": -51.194986,
+          "y": -23.339459
+        },
+        {
+          "x": -51.194957,
+          "y": -23.338651
+        },
+        {
+          "x": -51.194804,
+          "y": -23.338499
+        },
+        {
+          "x": -51.19475,
+          "y": -23.336903
+        },
+        {
+          "x": -51.194882,
+          "y": -23.33661
+        },
+        {
+          "x": -51.194918,
+          "y": -23.336246
+        },
+        {
+          "x": -51.194848,
+          "y": -23.335977
+        },
+        {
+          "x": -51.194762,
+          "y": -23.334585
+        },
+        {
+          "x": -51.194614,
+          "y": -23.332527
+        },
+        {
+          "x": -51.194867,
+          "y": -23.332292
+        },
+        {
+          "x": -51.194852,
+          "y": -23.33202
+        },
+        {
+          "x": -51.194536,
+          "y": -23.3318
+        },
+        {
+          "x": -51.194288,
+          "y": -23.330227
+        },
+        {
+          "x": -51.194238,
+          "y": -23.330004
+        }
+      ],
+      "speedKMH": 0,
+      "length": 1451,
+      "turnType": "NONE",
+      "uuid": 545108642,
+      "endNode": "Av. Deputado Arnaldo Busano",
+      "speed": 0,
+      "segments": [
+        {
+          "fromNode": 173292446,
+          "ID": 466179941,
+          "toNode": 330160931,
+          "isForward": false
+        }
+      ],
+      "blockingAlertUuid": "8359fcdb-6fc0-4f38-87ea-fb96dee1f726",
+      "roadType": 1,
+      "delay": -1,
+      "street": "R. Constantino Pialarissi",
+      "id": 545108642,
+      "pubMillis": 1776737675193
+    }
+  ]
+}

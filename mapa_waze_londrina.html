@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mapa Waze Londrina</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .status {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      z-index: 1000;
+      font-size: 14px;
+      max-width: 320px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="map"></div>
+<div class="status" id="status">Carregando dados...</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  const map = L.map('map').setView([-23.3103, -51.1628], 13);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
+
+  let geoLayer;
+
+  function getColor(level) {
+    if (level >= 5) return '#b30000';
+    if (level === 4) return '#e34a33';
+    if (level === 3) return '#fc8d59';
+    if (level === 2) return '#fdcc8a';
+    return '#2b8cbe';
+  }
+
+  function style(feature) {
+    return {
+      color: getColor(feature.properties.level ?? 1),
+      weight: 7,
+      opacity: 0.95
+    };
+  }
+
+  function onEachFeature(feature, layer) {
+    const p = feature.properties || {};
+
+    layer.bindPopup(`
+      <strong>${p.street || "Via desconhecida"}</strong><br>
+      Nível: ${p.level ?? "-"}<br>
+      Velocidade: ${p.speed ?? "-"} km/h<br>
+      Extensão: ${p.length ?? "-"} m<br>
+      Atraso: ${p.delay ?? "-"} s<br>
+      Coletado em: ${p.collected_at ?? "-"}
+    `);
+
+    layer.on("mouseover", function () {
+      this.setStyle({ weight: 10 });
+    });
+
+    layer.on("mouseout", function () {
+      geoLayer.resetStyle(this);
+    });
+  }
+
+  async function carregarDados() {
+    const status = document.getElementById("status");
+    status.innerText = "Atualizando...";
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/map/jams?limit=50");
+      const data = await response.json();
+
+      if (geoLayer) {
+        map.removeLayer(geoLayer);
+      }
+
+      geoLayer = L.geoJSON(data, {
+        style: style,
+        onEachFeature: onEachFeature
+      }).addTo(map);
+
+      const total = data.features ? data.features.length : 0;
+
+      if (total > 0) {
+        map.fitBounds(geoLayer.getBounds(), { padding: [20, 20] });
+      }
+
+      status.innerText = `Atualizado: ${new Date().toLocaleTimeString()} | Trechos: ${total}`;
+
+      console.log("GeoJSON carregado:", data);
+
+    } catch (error) {
+      status.innerText = "Erro ao carregar dados";
+      console.error(error);
+    }
+  }
+
+  carregarDados();
+  setInterval(carregarDados, 120000);
+</script>
+
+</body>
+</html>
