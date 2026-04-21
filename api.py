@@ -1,13 +1,9 @@
 import os
+import json
 import psycopg2
 import psycopg2.extras
-import json
-from pathlib import Path
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-
-BASE_DIR = Path(__file__).parent
-DB_PATH = BASE_DIR / "waze_londrina.db"
 
 app = FastAPI(title="API Waze Londrina")
 
@@ -20,11 +16,10 @@ app.add_middleware(
 )
 
 def get_connection():
-    DATABASE_URL = os.getenv("DATABASE_URL")
-    if not DATABASE_URL:
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
         raise RuntimeError("DATABASE_URL não definida")
-
-    return psycopg2.connect(DATABASE_URL)
+    return psycopg2.connect(database_url)
 
 @app.get("/")
 def home():
@@ -46,14 +41,14 @@ def listar_alerts(limit: int = Query(20, le=200)):
         LIMIT %s
     """, (limit,))
 
-    rows = [dict(row) for row in cur.fetchall()]
+    rows = cur.fetchall()
     conn.close()
     return rows
 
 @app.get("/jams")
 def listar_jams(limit: int = Query(20, le=200)):
     conn = get_connection()
-cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
         SELECT id, uuid, city, street, level, speed_kmh, length, delay, blocking_alert_uuid, collected_at
@@ -62,7 +57,7 @@ cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         LIMIT %s
     """, (limit,))
 
-    rows = [dict(row) for row in cur.fetchall()]
+    rows = cur.fetchall()
     conn.close()
     return rows
 
@@ -74,19 +69,19 @@ def jams_por_rua(rua: str, limit: int = Query(50, le=200)):
     cur.execute("""
         SELECT id, uuid, city, street, level, speed_kmh, length, delay, collected_at
         FROM jams
-        WHERE street LIKE ?
+        WHERE street ILIKE %s
         ORDER BY collected_at DESC
         LIMIT %s
     """, (f"%{rua}%", limit))
 
-    rows = [dict(row) for row in cur.fetchall()]
+    rows = cur.fetchall()
     conn.close()
     return rows
 
 @app.get("/stats")
 def stats():
     conn = get_connection()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur = conn.cursor()
 
     cur.execute("SELECT COUNT(*) FROM alerts")
     total_alerts = cur.fetchone()[0]
@@ -100,7 +95,6 @@ def stats():
         "total_alerts": total_alerts,
         "total_jams": total_jams
     }
-
 
 @app.get("/map/jams")
 def map_jams(limit: int = 20):
@@ -144,7 +138,7 @@ def map_jams(limit: int = 20):
                     "speed": row["speed_kmh"],
                     "length": row["length"],
                     "delay": row["delay"],
-                    "collected_at": row["collected_at"]
+                    "collected_at": row["collected_at"].isoformat() if row["collected_at"] else None
                 }
             })
         except Exception as e:
@@ -157,4 +151,3 @@ def map_jams(limit: int = 20):
         "type": "FeatureCollection",
         "features": features
     }
-    conn.close()
