@@ -1,4 +1,6 @@
-import sqlite3
+import os
+import psycopg2
+import psycopg2.extras
 import json
 from pathlib import Path
 from fastapi import FastAPI, Query
@@ -18,9 +20,11 @@ app.add_middleware(
 )
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL não definida")
+
+    return psycopg2.connect(DATABASE_URL)
 
 @app.get("/")
 def home():
@@ -33,13 +37,13 @@ def health():
 @app.get("/alerts")
 def listar_alerts(limit: int = Query(20, le=200)):
     conn = get_connection()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
         SELECT uuid, city, street, type, subtype, location_x, location_y, pub_millis, collected_at
         FROM alerts
         ORDER BY collected_at DESC
-        LIMIT ?
+        LIMIT %s
     """, (limit,))
 
     rows = [dict(row) for row in cur.fetchall()]
@@ -49,13 +53,13 @@ def listar_alerts(limit: int = Query(20, le=200)):
 @app.get("/jams")
 def listar_jams(limit: int = Query(20, le=200)):
     conn = get_connection()
-    cur = conn.cursor()
+cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
         SELECT id, uuid, city, street, level, speed_kmh, length, delay, blocking_alert_uuid, collected_at
         FROM jams
         ORDER BY collected_at DESC
-        LIMIT ?
+        LIMIT %s
     """, (limit,))
 
     rows = [dict(row) for row in cur.fetchall()]
@@ -65,14 +69,14 @@ def listar_jams(limit: int = Query(20, le=200)):
 @app.get("/jams/por-rua")
 def jams_por_rua(rua: str, limit: int = Query(50, le=200)):
     conn = get_connection()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
         SELECT id, uuid, city, street, level, speed_kmh, length, delay, collected_at
         FROM jams
         WHERE street LIKE ?
         ORDER BY collected_at DESC
-        LIMIT ?
+        LIMIT %s
     """, (f"%{rua}%", limit))
 
     rows = [dict(row) for row in cur.fetchall()]
@@ -82,7 +86,7 @@ def jams_por_rua(rua: str, limit: int = Query(50, le=200)):
 @app.get("/stats")
 def stats():
     conn = get_connection()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("SELECT COUNT(*) FROM alerts")
     total_alerts = cur.fetchone()[0]
@@ -101,14 +105,14 @@ def stats():
 @app.get("/map/jams")
 def map_jams(limit: int = 20):
     conn = get_connection()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
         SELECT street, level, speed_kmh, length, delay, line_json, collected_at
         FROM jams
         WHERE line_json IS NOT NULL AND line_json != ''
         ORDER BY collected_at DESC
-        LIMIT ?
+        LIMIT %s
     """, (limit,))
 
     features = []
