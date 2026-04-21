@@ -152,28 +152,54 @@ def map_jams(limit: int = 20):
         "features": features
     }
 
+@app.get("/debug/env")
+def debug_env():
+    database_url = os.getenv("DATABASE_URL")
+    return {
+        "database_url_exists": bool(database_url),
+        "uses_internal_host": "railway.internal" in database_url if database_url else False
+    }
+
 @app.get("/debug/db")
 def debug_db():
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT current_database(), current_user")
-    row = cur.fetchone()
-    conn.close()
-    return {
-        "database": row[0],
-        "user": row[1]
-    }
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT current_database(), current_user")
+        row = cur.fetchone()
+        conn.close()
+        return {
+            "ok": True,
+            "database": row[0],
+            "user": row[1]
+        }
+    except Exception as e:
+        return {
+            "ok": False,
+            "error_type": type(e).__name__,
+            "error": str(e)
+        }
 
 @app.get("/debug/tables")
 def debug_tables():
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT table_name
-        FROM information_schema.tables
-        WHERE table_schema = 'public'
-        ORDER BY table_name
-    """)
-    rows = cur.fetchall()
-    conn.close()
-    return {"tables": [r[0] for r in rows]}
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+            ORDER BY table_name
+        """)
+        rows = cur.fetchall()
+        conn.close()
+        return {
+            "ok": True,
+            "tables": [r[0] for r in rows]
+        }
+    except Exception as e:
+        return {
+            "ok": False,
+            "error_type": type(e).__name__,
+            "error": str(e)
+        }
