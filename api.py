@@ -203,3 +203,21 @@ def debug_tables():
             "error_type": type(e).__name__,
             "error": str(e)
         }
+
+@app.get("/debug/latest")
+def debug_latest():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT MAX(collected_at) FROM alerts")
+    latest_alert = cur.fetchone()[0]
+
+    cur.execute("SELECT MAX(collected_at) FROM jams")
+    latest_jam = cur.fetchone()[0]
+
+    conn.close()
+
+    return {
+        "latest_alert_collected_at": latest_alert.isoformat() if latest_alert else None,
+        "latest_jam_collected_at": latest_jam.isoformat() if latest_jam else None
+    }
