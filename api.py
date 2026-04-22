@@ -221,3 +221,90 @@ def debug_latest():
         "latest_alert_collected_at": latest_alert.isoformat() if latest_alert else None,
         "latest_jam_collected_at": latest_jam.isoformat() if latest_jam else None
     }
+
+@app.get("/analytics/jams-by-level")
+def jams_by_level(limit: int = Query(10000, le=50000)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT level, COUNT(*) AS total
+        FROM (
+            SELECT level
+            FROM jams
+            ORDER BY collected_at DESC
+            LIMIT %s
+        ) sub
+        GROUP BY level
+        ORDER BY level
+    """, (limit,))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+
+@app.get("/analytics/top-streets-jams")
+def top_streets_jams(limit: int = Query(10, le=100), sample_size: int = Query(10000, le=50000)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT street, COUNT(*) AS total
+        FROM (
+            SELECT street
+            FROM jams
+            WHERE street IS NOT NULL AND street != ''
+            ORDER BY collected_at DESC
+            LIMIT %s
+        ) sub
+        GROUP BY street
+        ORDER BY total DESC, street ASC
+        LIMIT %s
+    """, (sample_size, limit))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+
+@app.get("/analytics/alerts-by-type")
+def alerts_by_type(limit: int = Query(10000, le=50000)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT type, COUNT(*) AS total
+        FROM (
+            SELECT type
+            FROM alerts
+            ORDER BY collected_at DESC
+            LIMIT %s
+        ) sub
+        GROUP BY type
+        ORDER BY total DESC, type ASC
+    """, (limit,))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+
+@app.get("/analytics/jams-timeseries-hourly")
+def jams_timeseries_hourly(hours: int = Query(24, le=168)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            to_char(date_trunc('hour', collected_at), 'YYYY-MM-DD HH24:00:00') AS hour_bucket,
+            COUNT(*) AS total
+        FROM jams
+        WHERE collected_at >= NOW() - (%s || ' hours')::interval
+        GROUP BY date_trunc('hour', collected_at)
+        ORDER BY date_trunc('hour', collected_at)
+    """, (hours,))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
