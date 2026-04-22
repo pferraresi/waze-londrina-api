@@ -152,7 +152,12 @@
   <div class="container">
     <div class="topbar">
       <div class="title">
-        <h1>Dashboard Waze Londrina</h1>
+        <div style="margin-bottom:10px;">
+  <h1 style="margin:0;">Observatório de Mobilidade Urbana – Londrina</h1>
+  <p style="margin:5px 0; color:#6b7280;">
+    Monitoramento em tempo real de congestionamentos e alertas urbanos a partir de dados do Waze
+  </p>
+</div>
         <p>Painel operacional e analítico para acompanhamento de alerts, jams e trechos críticos.</p>
       </div>
       <div class="controls">
@@ -174,12 +179,31 @@
       </div>
     </div>
 
-    <div class="grid-cards">
-      <div class="card"><div class="label">Total de alerts</div><div class="value" id="totalAlerts">-</div></div>
-      <div class="card"><div class="label">Total de jams</div><div class="value" id="totalJams">-</div></div>
-      <div class="card"><div class="label">Trechos no mapa</div><div class="value" id="trechosMapa">-</div></div>
-      <div class="card"><div class="label">Última atualização</div><div class="value" id="ultimaAtualizacao" style="font-size:20px;">-</div></div>
+    <div class="card" style="margin-bottom:18px;">
+  <strong>Metodologia</strong><br>
+  <span style="font-size:14px; color:#6b7280;">
+    Os dados são coletados automaticamente a partir do Waze Partner Feed, com atualização contínua.
+    Os registros incluem alertas (incidentes reportados por usuários) e congestionamentos (jams),
+    classificados em níveis de 1 a 5 conforme critérios da plataforma.
+  </span>
+        </div>
+
+            <div class="grid-cards">
+              <div class="card"><div class="label">Total de alerts</div><div class="value" id="totalAlerts">-</div></div>
+              <div class="card"><div class="label">Total de jams</div><div class="value" id="totalJams">-</div></div>
+              <div class="card"><div class="label">Trechos no mapa</div><div class="value" id="trechosMapa">-</div></div>
+              <div class="card"><div class="label">Última atualização</div><div class="value" id="ultimaAtualizacao" style="font-size:20px;">-</div></div>
     </div>
+
+    <div class="card" style="margin-bottom:18px; border-left:4px solid #f59e0b;">
+  <strong>Limitações dos dados</strong><br>
+  <span style="font-size:14px; color:#6b7280;">
+    Os dados refletem a atividade dos usuários da plataforma Waze e, portanto, representam um sistema
+    sociotécnico de participação cidadã. Dessa forma, podem não corresponder integralmente às condições
+    reais de tráfego urbano, estando sujeitos a vieses de uso, cobertura geográfica e comportamento dos usuários.
+  </span>
+</div>  
+
 
     <div class="main-grid">
       <div class="card">
