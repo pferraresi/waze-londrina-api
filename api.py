@@ -328,3 +328,24 @@ def jams_by_level_hour(hours: int = Query(24, le=168)):
     rows = cur.fetchall()
     conn.close()
     return rows
+
+@app.get("/analytics/jams-by-weekday-hour")
+def jams_by_weekday_hour(days: int = Query(7, le=30)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            EXTRACT(DOW FROM collected_at) AS weekday,
+            EXTRACT(HOUR FROM collected_at) AS hour,
+            level,
+            COUNT(*) AS total
+        FROM jams
+        WHERE collected_at >= NOW() - (%s || ' days')::interval
+        GROUP BY weekday, hour, level
+        ORDER BY weekday, hour, level
+    """, (days,))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
