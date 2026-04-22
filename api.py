@@ -308,3 +308,23 @@ def jams_timeseries_hourly(hours: int = Query(24, le=168)):
     rows = cur.fetchall()
     conn.close()
     return rows
+
+@app.get("/analytics/jams-by-level-hour")
+def jams_by_level_hour(hours: int = Query(24, le=168)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            EXTRACT(HOUR FROM collected_at) AS hour_of_day,
+            level,
+            COUNT(*) AS total
+        FROM jams
+        WHERE collected_at >= NOW() - (%s || ' hours')::interval
+        GROUP BY EXTRACT(HOUR FROM collected_at), level
+        ORDER BY hour_of_day, level
+    """, (hours,))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
