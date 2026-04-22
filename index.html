@@ -379,6 +379,8 @@
   });
 
   const ctx = document.getElementById('jamLevelChart');
+  document.getElementById('footerUpdateTime').textContent =
+  new Date().toLocaleString('pt-BR');
 
   if (jamLevelChart) jamLevelChart.destroy();
 
@@ -589,5 +591,28 @@
     });
     startAutoRefresh();
   </script>
+
+  <div style="
+  margin-top:30px;
+  padding:15px;
+  text-align:center;
+  font-size:13px;
+  color:#6b7280;
+  border-top:1px solid #e5e7eb;
+">
+  <div>
+    <strong>Observatório de Mobilidade Urbana – Londrina</strong>
+  </div>
+  <div style="margin-top:5px;">
+    Universidade Estadual de Londrina (UEL)
+  </div>
+  <div style="margin-top:5px;">
+    Fonte: Waze Partner Feed
+  </div>
+  <div style="margin-top:5px;">
+    Última atualização do painel: <span id="footerUpdateTime">-</span>
+  </div>
+</div>
+
 </body>
 </html>
