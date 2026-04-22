@@ -343,19 +343,65 @@
       return response.json();
     }
 
-    function buildInsights(stats, recentJams, recentAlerts, ranking, levelData) {
-      const topJam = recentJams[0];
-      const topAlert = recentAlerts[0];
-      const topStreet = ranking[0];
-      const dominantLevel = [...levelData].sort((a, b) => Number(b.total) - Number(a.total))[0];
-      return `
-        <p><strong>Leitura operacional:</strong> o banco registra <strong>${stats.total_alerts}</strong> alerts e <strong>${stats.total_jams}</strong> jams acumulados.</p>
-        <p><strong>Rua mais recorrente:</strong> ${topStreet ? `${topStreet.street} (${topStreet.total} ocorrências)` : 'sem dados'}.</p>
-        <p><strong>Nível dominante de congestionamento:</strong> ${dominantLevel ? `nível ${dominantLevel.level} (${dominantLevel.total} registros)` : 'sem dados'}.</p>
-        <p><strong>Trecho recente em destaque:</strong> ${topJam ? topJam.street || 'sem rua' : 'sem dados'}.</p>
-        <p><strong>Alert recente em destaque:</strong> ${topAlert ? (topAlert.type || 'sem tipo') + ' em ' + (topAlert.street || 'via não identificada') : 'sem dados'}.</p>
-      `;
-    }
+    function buildInsights(stats, recentJams, recentAlerts, ranking, levelData, timeSeriesRows, alertsByTypeRows) {
+  const topJam = recentJams[0];
+  const topAlert = recentAlerts[0];
+  const topStreet = ranking[0];
+
+  const dominantLevel = [...levelData].sort((a, b) => Number(b.total) - Number(a.total))[0];
+  const totalLevels = levelData.reduce((acc, row) => acc + Number(row.total), 0);
+  const dominantLevelShare = dominantLevel
+    ? ((Number(dominantLevel.total) / totalLevels) * 100).toFixed(1)
+    : null;
+
+  const peakHour = [...timeSeriesRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
+
+  const topAlertType = [...alertsByTypeRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
+
+  const insightLines = [];
+
+  insightLines.push(
+    `<p><strong>Volume acumulado:</strong> o banco registra <strong>${stats.total_alerts}</strong> alerts e <strong>${stats.total_jams}</strong> jams.</p>`
+  );
+
+  if (dominantLevel) {
+    insightLines.push(
+      `<p><strong>Gravidade predominante:</strong> o nível <strong>${dominantLevel.level}</strong> concentra <strong>${dominantLevel.total}</strong> registros, correspondendo a <strong>${dominantLevelShare}%</strong> da distribuição recente.</p>`
+    );
+  }
+
+  if (peakHour) {
+    insightLines.push(
+      `<p><strong>Janela crítica recente:</strong> o maior volume de jams ocorreu em <strong>${peakHour.hour_bucket}</strong>, com <strong>${peakHour.total}</strong> registros.</p>`
+    );
+  }
+
+  if (topStreet) {
+    insightLines.push(
+      `<p><strong>Rua mais recorrente:</strong> <strong>${topStreet.street}</strong> aparece com <strong>${topStreet.total}</strong> ocorrências na amostra analítica.</p>`
+    );
+  }
+
+  if (topAlertType) {
+    insightLines.push(
+      `<p><strong>Tipo de alert mais frequente:</strong> <strong>${topAlertType.type}</strong>, com <strong>${topAlertType.total}</strong> registros.</p>`
+    );
+  }
+
+  if (topJam) {
+    insightLines.push(
+      `<p><strong>Trecho recente em destaque:</strong> ${topJam.street || 'via não identificada'}, nível <strong>${topJam.level ?? '-'}</strong>, velocidade <strong>${topJam.speed_kmh ?? '-'}</strong> km/h.</p>`
+    );
+  }
+
+  if (topAlert) {
+    insightLines.push(
+      `<p><strong>Alert recente em destaque:</strong> ${topAlert.type || 'sem tipo'} em <strong>${topAlert.street || 'via não identificada'}</strong>.</p>`
+    );
+  }
+
+  return insightLines.join('');
+}
 
     function buildJamLevelHourChart(rows) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
@@ -474,8 +520,15 @@
       document.getElementById('totalJams').textContent = stats.total_jams ?? '-';
       document.getElementById('trechosMapa').textContent = geo.features ? geo.features.length : 0;
       document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
-      document.getElementById('insights').innerHTML = buildInsights(stats, recentJams, alerts, rankingRows, levelRows);
-
+      document.getElementById('insights').innerHTML = buildInsights(
+        stats,
+        recentJams,
+        alerts,
+        rankingRows,
+        levelRows,
+        timeSeriesRows,
+        alertsByTypeRows
+          );
       const jamsBody = document.getElementById('jamsTableBody');
       jamsBody.innerHTML = recentJams.map(item => `
         <tr>
