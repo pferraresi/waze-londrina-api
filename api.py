@@ -401,38 +401,6 @@ def top_critical_streets_by_length(limit: int = Query(10, le=100), hours: int = 
     conn.close()
     return rows
 
-@app.get("/analytics/jams-with-closures")
-def jams_with_closures(hours: int = Query(24, le=168), limit: int = Query(50, le=500)):
-    conn = get_connection()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
-        SELECT
-            j.street,
-            j.level,
-            j.collected_at,
-            a.type AS alert_type,
-            a.subtype AS alert_subtype,
-            a.report_description
-        FROM jams j
-        LEFT JOIN alerts a
-          ON j.street = a.street
-         AND a.collected_at BETWEEN j.collected_at - interval '30 minutes'
-                               AND j.collected_at + interval '30 minutes'
-        WHERE j.collected_at >= NOW() - (%s || ' hours')::interval
-          AND (
-              a.type ILIKE '%%CLOSED%%'
-              OR a.subtype ILIKE '%%CONSTRUCTION%%'
-              OR a.subtype ILIKE '%%CLOSED%%'
-              OR a.report_description ILIKE '%%obra%%'
-          )
-        ORDER BY j.collected_at DESC
-        LIMIT %s
-    """, (hours, limit))
-
-    rows = cur.fetchall()
-    conn.close()
-    return rows
 
 @app.get("/analytics/jams-with-closures")
 def jams_with_closures(hours: int = Query(24, le=168), limit: int = Query(100, le=1000)):
@@ -646,3 +614,48 @@ def top_streets_by_impact(hours: int = Query(24, le=168), limit: int = Query(10,
     rows = cur.fetchall()
     conn.close()
     return rows
+
+@app.get("/analytics/critical-jams")
+def critical_jams(hours: int = Query(24, le=168), limit: int = Query(20, le=100)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            street,
+            level,
+            AVG(length) AS avg_length,
+            AVG(delay) AS avg_delay,
+            COUNT(*) AS observations,
+            MIN(collected_at) AS start_time,
+            MAX(collected_at) AS end_time,
+            EXTRACT(EPOCH FROM (MAX(collected_at) - MIN(collected_at))) / 60 AS duration_min
+        FROM jams
+        WHERE collected_at >= NOW() - (%s || ' hours')::interval
+          AND street IS NOT NULL
+          AND street != ''
+        GROUP BY street, level
+    """, (hours,))
+
+    rows = cur.fetchall()
+    conn.close()
+
+    results = []
+    for r in rows:
+        duration = float(r["duration_min"] or 0)
+        length = float(r["avg_length"] or 0)
+        level = int(r["level"] or 1)
+
+        criticidade = level * duration * length
+
+        results.append({
+            "street": r["street"],
+            "level": level,
+            "duration_min": round(duration, 1),
+            "avg_length_m": round(length, 1),
+            "criticidade": round(criticidade, 0)
+        })
+
+    results.sort(key=lambda x: x["criticidade"], reverse=True)
+
+    return results[:limit]
