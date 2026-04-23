@@ -349,3 +349,85 @@ def jams_by_weekday_hour(days: int = Query(7, le=30)):
     rows = cur.fetchall()
     conn.close()
     return rows
+
+
+@app.get("/analytics/top-streets-by-length")
+def top_streets_by_length(limit: int = Query(10, le=100), hours: int = Query(24, le=168)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            street,
+            COUNT(*) AS total_jams,
+            SUM(COALESCE(length, 0)) AS total_length_m,
+            AVG(COALESCE(length, 0)) AS avg_length_m
+        FROM jams
+        WHERE collected_at >= NOW() - (%s || ' hours')::interval
+          AND street IS NOT NULL
+          AND street != ''
+        GROUP BY street
+        ORDER BY total_length_m DESC
+        LIMIT %s
+    """, (hours, limit))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+@app.get("/analytics/top-critical-streets-by-length")
+def top_critical_streets_by_length(limit: int = Query(10, le=100), hours: int = Query(24, le=168)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            street,
+            COUNT(*) AS total_jams,
+            SUM(COALESCE(length, 0)) AS total_length_m
+        FROM jams
+        WHERE collected_at >= NOW() - (%s || ' hours')::interval
+          AND level = 5
+          AND street IS NOT NULL
+          AND street != ''
+        GROUP BY street
+        ORDER BY total_length_m DESC
+        LIMIT %s
+    """, (hours, limit))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+@app.get("/analytics/jams-with-closures")
+def jams_with_closures(hours: int = Query(24, le=168), limit: int = Query(50, le=500)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            j.street,
+            j.level,
+            j.collected_at,
+            a.type AS alert_type,
+            a.subtype AS alert_subtype,
+            a.report_description
+        FROM jams j
+        LEFT JOIN alerts a
+          ON j.street = a.street
+         AND a.collected_at BETWEEN j.collected_at - interval '30 minutes'
+                               AND j.collected_at + interval '30 minutes'
+        WHERE j.collected_at >= NOW() - (%s || ' hours')::interval
+          AND (
+              a.type ILIKE '%%CLOSED%%'
+              OR a.subtype ILIKE '%%CONSTRUCTION%%'
+              OR a.subtype ILIKE '%%CLOSED%%'
+              OR a.report_description ILIKE '%%obra%%'
+          )
+        ORDER BY j.collected_at DESC
+        LIMIT %s
+    """, (hours, limit))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
