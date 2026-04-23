@@ -4,6 +4,8 @@ import psycopg2
 import psycopg2.extras
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from collections import defaultdict
+from datetime import timedelta
 
 app = FastAPI(title="API Waze Londrina")
 
@@ -501,6 +503,143 @@ def top_streets_with_closures(hours: int = Query(24, le=168), limit: int = Query
           )
         GROUP BY j.street
         ORDER BY total_length_m DESC
+        LIMIT %s
+    """, (hours, limit))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+@app.get("/analytics/jam-durations")
+def jam_durations(hours: int = Query(24, le=168), gap_minutes: int = Query(5, le=30), limit: int = Query(200, le=1000)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT street, level, length, delay, collected_at
+        FROM jams
+        WHERE collected_at >= NOW() - (%s || ' hours')::interval
+          AND street IS NOT NULL
+          AND street != ''
+        ORDER BY street, level, collected_at
+    """, (hours,))
+
+    rows = cur.fetchall()
+    conn.close()
+
+    grouped = defaultdict(list)
+    for row in rows:
+        key = (row["street"], row["level"])
+        grouped[key].append(row)
+
+    episodes = []
+    max_gap = timedelta(minutes=gap_minutes)
+
+    for (street, level), items in grouped.items():
+        if not items:
+            continue
+
+        start = items[0]["collected_at"]
+        last = items[0]["collected_at"]
+        total_length = float(items[0]["length"] or 0)
+        total_delay = float(items[0]["delay"] or 0)
+        count = 1
+
+        for row in items[1:]:
+            current = row["collected_at"]
+            if current - last <= max_gap:
+                last = current
+                total_length += float(row["length"] or 0)
+                total_delay += float(row["delay"] or 0)
+                count += 1
+            else:
+                duration_min = (last - start).total_seconds() / 60
+                episodes.append({
+                    "street": street,
+                    "level": level,
+                    "start_time": start.isoformat(),
+                    "end_time": last.isoformat(),
+                    "estimated_duration_min": round(duration_min, 1),
+                    "observations": count,
+                    "avg_length_m": round(total_length / count, 1),
+                    "avg_delay_s": round(total_delay / count, 1)
+                })
+                start = current
+                last = current
+                total_length = float(row["length"] or 0)
+                total_delay = float(row["delay"] or 0)
+                count = 1
+
+        duration_min = (last - start).total_seconds() / 60
+        episodes.append({
+            "street": street,
+            "level": level,
+            "start_time": start.isoformat(),
+            "end_time": last.isoformat(),
+            "estimated_duration_min": round(duration_min, 1),
+            "observations": count,
+            "avg_length_m": round(total_length / count, 1),
+            "avg_delay_s": round(total_delay / count, 1)
+        })
+
+    episodes.sort(key=lambda x: x["estimated_duration_min"], reverse=True)
+    return episodes[:limit]
+
+@app.get("/analytics/jam-duration-summary")
+def jam_duration_summary(hours: int = Query(24, le=168), gap_minutes: int = Query(5, le=30)):
+    episodes = jam_durations(hours=hours, gap_minutes=gap_minutes, limit=5000)
+
+    if not episodes:
+        return {
+            "episodes": 0,
+            "avg_duration_min": 0,
+            "max_duration_min": 0
+        }
+
+    durations = [e["estimated_duration_min"] for e in episodes]
+    return {
+        "episodes": len(episodes),
+        "avg_duration_min": round(sum(durations) / len(durations), 1),
+        "max_duration_min": round(max(durations), 1)
+    }
+
+@app.get("/analytics/impact-summary")
+def impact_summary(hours: int = Query(24, le=168)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            COUNT(*) AS total_jams,
+            SUM(COALESCE(delay, 0)) AS total_delay_s,
+            SUM(COALESCE(length, 0)) AS total_length_m,
+            SUM(COALESCE(delay, 0) * COALESCE(length, 0)) AS impact_score
+        FROM jams
+        WHERE collected_at >= NOW() - (%s || ' hours')::interval
+    """, (hours,))
+
+    row = cur.fetchone()
+    conn.close()
+    return row
+
+@app.get("/analytics/top-streets-by-impact")
+def top_streets_by_impact(hours: int = Query(24, le=168), limit: int = Query(10, le=100)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            street,
+            COUNT(*) AS total_jams,
+            SUM(COALESCE(delay, 0)) AS total_delay_s,
+            SUM(COALESCE(length, 0)) AS total_length_m,
+            SUM(COALESCE(delay, 0) * COALESCE(length, 0)) AS impact_score
+        FROM jams
+        WHERE collected_at >= NOW() - (%s || ' hours')::interval
+          AND street IS NOT NULL
+          AND street != ''
+        GROUP BY street
+        ORDER BY impact_score DESC
         LIMIT %s
     """, (hours, limit))
 
