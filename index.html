@@ -708,3 +708,26 @@
     if (errorBox) errorBox.textContent = err.message;
   }
 }
+
+function startAutoRefresh() {
+  if (refreshHandle) clearInterval(refreshHandle);
+  const seconds = Number(document.getElementById('refreshSeconds').value || 120);
+  refreshHandle = setInterval(loadDashboard, seconds * 1000);
+}
+
+document.getElementById('reloadBtn').addEventListener('click', () => {
+  loadDashboard();
+  startAutoRefresh();
+});
+
+document.getElementById('refreshSeconds').addEventListener('change', startAutoRefresh);
+
+document.getElementById('alertTypeFilter').addEventListener('change', () => {
+  loadDashboard();
+});
+
+loadDashboard();
+startAutoRefresh();
+  </script>
+</body>
+</html>
