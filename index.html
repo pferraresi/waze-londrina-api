@@ -600,55 +600,111 @@
     }
 
     async function loadDashboard() {
-      const errorBox = document.getElementById('errorBox');
-      errorBox.textContent = '';
+  const errorBox = document.getElementById('errorBox');
+  if (errorBox) errorBox.textContent = '';
 
-      try {
-        const apiBase = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
-        const streetFilter = document.getElementById('streetFilter').value.trim();
-        const alertTypeFilter = document.getElementById('alertTypeFilter').value;
+  const apiBase = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
+  const streetFilter = document.getElementById('streetFilter').value.trim();
+  const alertTypeFilter = document.getElementById('alertTypeFilter').value;
 
-        const statsUrl = `${apiBase}/stats`;
-        const alertsUrl = `${apiBase}/alerts?limit=50`;
-        const recentJamsUrl = streetFilter
-          ? `${apiBase}/jams/por-rua?rua=${encodeURIComponent(streetFilter)}&limit=20`
-          : `${apiBase}/jams?limit=20`;
-        const mapUrl = `${apiBase}/map/jams?limit=50`;
-        const levelUrl = `${apiBase}/analytics/jams-by-level`;
-        const alertsByTypeUrl = `${apiBase}/analytics/alerts-by-type`;
-        const timeSeriesUrl = `${apiBase}/analytics/jams-timeseries-hourly?hours=24`;
-        const levelHourUrl = `${apiBase}/analytics/jams-by-level-hour?hours=24`;
-        const weekdayUrl = `${apiBase}/analytics/jams-by-weekday-hour?days=7`;
-        const lengthRankingUrl = `${apiBase}/analytics/top-streets-by-length?limit=10&hours=24`;
+  const statsUrl = `${apiBase}/stats`;
+  const alertsUrl = `${apiBase}/alerts?limit=50`;
+  const recentJamsUrl = streetFilter
+    ? `${apiBase}/jams/por-rua?rua=${encodeURIComponent(streetFilter)}&limit=20`
+    : `${apiBase}/jams?limit=20`;
+  const mapUrl = `${apiBase}/map/jams?limit=50`;
+  const levelUrl = `${apiBase}/analytics/jams-by-level`;
+  const alertsByTypeUrl = `${apiBase}/analytics/alerts-by-type`;
+  const timeSeriesUrl = `${apiBase}/analytics/jams-timeseries-hourly?hours=24`;
+  const levelHourUrl = `${apiBase}/analytics/jams-by-level-hour?hours=24`;
+  const weekdayUrl = `${apiBase}/analytics/jams-by-weekday-hour?days=7`;
+  const lengthRankingUrl = `${apiBase}/analytics/top-streets-by-length?limit=10&hours=24`;
 
-        const results = await Promise.allSettled([
-  getJson(statsUrl),
-  getJson(alertsUrl),
-  getJson(recentJamsUrl),
-  getJson(mapUrl),
-  getJson(levelUrl),
-  getJson(alertsByTypeUrl),
-  getJson(timeSeriesUrl),
-  getJson(levelHourUrl),
-  getJson(weekdayUrl),
-  getJson(lengthRankingUrl)
-]);
+  try {
+    const results = await Promise.allSettled([
+      getJson(statsUrl),
+      getJson(alertsUrl),
+      getJson(recentJamsUrl),
+      getJson(mapUrl),
+      getJson(levelUrl),
+      getJson(alertsByTypeUrl),
+      getJson(timeSeriesUrl),
+      getJson(levelHourUrl),
+      getJson(weekdayUrl),
+      getJson(lengthRankingUrl)
+    ]);
 
-const stats = results[0].status === 'fulfilled' ? results[0].value : { total_alerts: '-', total_jams: '-' };
-const alertsRaw = results[1].status === 'fulfilled' ? results[1].value : [];
-const recentJams = results[2].status === 'fulfilled' ? results[2].value : [];
-const geo = results[3].status === 'fulfilled' ? results[3].value : { type: 'FeatureCollection', features: [] };
-const levelRows = results[4].status === 'fulfilled' ? results[4].value : [];
-const alertsByTypeRows = results[5].status === 'fulfilled' ? results[5].value : [];
-const timeSeriesRows = results[6].status === 'fulfilled' ? results[6].value : [];
-const levelHourRows = results[7].status === 'fulfilled' ? results[7].value : [];
-const weekdayRows = results[8].status === 'fulfilled' ? results[8].value : [];
-const lengthRankingRows = results[9].status === 'fulfilled' ? results[9].value : [];
+    const stats = results[0].status === 'fulfilled' ? results[0].value : { total_alerts: '-', total_jams: '-' };
+    const alertsRaw = results[1].status === 'fulfilled' ? results[1].value : [];
+    const recentJams = results[2].status === 'fulfilled' ? results[2].value : [];
+    const geo = results[3].status === 'fulfilled' ? results[3].value : { type: 'FeatureCollection', features: [] };
+    const levelRows = results[4].status === 'fulfilled' ? results[4].value : [];
+    const alertsByTypeRows = results[5].status === 'fulfilled' ? results[5].value : [];
+    const timeSeriesRows = results[6].status === 'fulfilled' ? results[6].value : [];
+    const levelHourRows = results[7].status === 'fulfilled' ? results[7].value : [];
+    const weekdayRows = results[8].status === 'fulfilled' ? results[8].value : [];
+    const lengthRankingRows = results[9].status === 'fulfilled' ? results[9].value : [];
 
-        populateAlertTypeFilter(alertsRaw);
-        const alerts = alertTypeFilter ? alertsRaw.filter(a => a.type === alertTypeFilter) : alertsRaw;
+    populateAlertTypeFilter(alertsRaw);
+    const alerts = alertTypeFilter ? alertsRaw.filter(a => a.type === alertTypeFilter) : alertsRaw;
 
-        document.getElementById('totalAlerts').textContent = stats.total_alerts ?? '-';
-        document.getElementById('totalJams').textContent = stats.total_jams ?? '-';
-        document.getElementById('trechosMapa').textContent = Array.isArray(geo.features) ? geo.features.length : 0;
-        document.ge
+    document.getElementById('totalAlerts').textContent = stats.total_alerts ?? '-';
+    document.getElementById('totalJams').textContent = stats.total_jams ?? '-';
+    document.getElementById('trechosMapa').textContent = Array.isArray(geo.features) ? geo.features.length : 0;
+    document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
+    document.getElementById('footerUpdateTime').textContent = new Date().toLocaleString('pt-BR');
+
+    document.getElementById('insights').innerHTML = buildInsights(
+      stats,
+      recentJams,
+      alerts,
+      lengthRankingRows,
+      levelRows,
+      timeSeriesRows,
+      alertsByTypeRows
+    );
+
+    document.getElementById('jamsTableBody').innerHTML = recentJams.map(item => `
+      <tr>
+        <td>${item.street || '-'}</td>
+        <td>${item.level ?? '-'}</td>
+        <td>${item.speed_kmh ?? '-'}</td>
+        <td>${item.delay ?? '-'}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('alertsTableBody').innerHTML = alerts.map(item => `
+      <tr>
+        <td>${item.street || '-'}</td>
+        <td>${item.type || '-'}</td>
+        <td>${item.subtype || '-'}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('rankingTableBody').innerHTML = lengthRankingRows.map(item => `
+      <tr>
+        <td>${item.street || '-'}</td>
+        <td>${Number(item.total_length_m || 0).toFixed(0)}</td>
+      </tr>
+    `).join('');
+
+    if (levelHourRows.length) buildJamLevelHourChart(levelHourRows);
+    if (timeSeriesRows.length) buildTimeSeries(timeSeriesRows);
+    if (weekdayRows.length) buildWeekdayChart(weekdayRows);
+
+    if (geoLayer) map.removeLayer(geoLayer);
+    geoLayer = L.geoJSON(geo, { style, onEachFeature }).addTo(map);
+    if (geo.features && geo.features.length > 0) {
+      map.fitBounds(geoLayer.getBounds(), { padding: [20, 20] });
+    }
+
+    const alertTypes = alertsByTypeRows.map(r => `${r.type}: ${r.total}`).join(' | ');
+    document.getElementById('mapStatus').textContent =
+      `Mapa atualizado em ${new Date().toLocaleString('pt-BR')} | Alerts por tipo: ${alertTypes}`;
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById('mapStatus').textContent = 'Erro ao carregar dashboard';
+    if (errorBox) errorBox.textContent = err.message;
+  }
+}
