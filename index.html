@@ -359,6 +359,35 @@
       </div>
     </div>
 
+    <div class="card">
+      <div class="label">Duração média (min)</div>
+      <div class="value" id="avgDuration">-</div>
+    </div>
+
+<div class="card">
+  <div class="label">Delay total (s)</div>
+  <div class="value" id="totalDelay">-</div>
+</div>
+
+<div class="card">
+  <div class="label">Impacto (score)</div>
+  <div class="value" id="impactScore">-</div>
+</div>
+
+<div class="card">
+  <h2 class="panel-title">Ruas com possível obra/interdição</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Rua</th>
+        <th>Nível</th>
+        <th>Tipo</th>
+      </tr>
+    </thead>
+    <tbody id="closuresTableBody"></tbody>
+  </table>
+</div>
+
     <div class="footer">
       <div><strong>Projeto de Pesquisa Cidades Inteligentes - UEL</strong></div>
       <div style="margin-top:5px;">Observatório de Mobilidade Urbana – Londrina</div>
@@ -425,8 +454,7 @@
       select.value = current;
     }
 
-    function buildInsights(stats, recentJams, recentAlerts, lengthRankingRows, levelData, timeSeriesRows, alertsByTypeRows) {
-      const topJam = recentJams[0];
+function buildInsights(stats, recentJams, recentAlerts, lengthRankingRows, levelData, timeSeriesRows, alertsByTypeRows, closures)   {const topJam = recentJams[0];
       const topAlert = recentAlerts[0];
       const topStreet = lengthRankingRows[0];
 
@@ -480,6 +508,12 @@
           `<p><strong>Alert recente em destaque:</strong> ${topAlert.type || 'sem tipo'} em <strong>${topAlert.street || 'via não identificada'}</strong>.</p>`
         );
       }
+
+      if (closures && closures.length > 0) {
+  insightLines.push(
+    `<p><strong>Observação:</strong> parte dos congestionamentos pode estar associada a obras ou interdições identificadas nos alerts.</p>`
+  );
+}
 
       return insightLines.join('');
     }
@@ -619,6 +653,9 @@
   const levelHourUrl = `${apiBase}/analytics/jams-by-level-hour?hours=24`;
   const weekdayUrl = `${apiBase}/analytics/jams-by-weekday-hour?days=7`;
   const lengthRankingUrl = `${apiBase}/analytics/top-streets-by-length?limit=10&hours=24`;
+  const durationSummaryUrl = `${apiBase}/analytics/jam-duration-summary`;
+  const impactSummaryUrl = `${apiBase}/analytics/impact-summary`;
+  const closuresUrl = `${apiBase}/analytics/jams-with-closures?limit=20`;
 
   try {
     const results = await Promise.allSettled([
@@ -631,7 +668,10 @@
       getJson(timeSeriesUrl),
       getJson(levelHourUrl),
       getJson(weekdayUrl),
-      getJson(lengthRankingUrl)
+      getJson(lengthRankingUrl),
+      getJson(durationSummaryUrl),
+      getJson(impactSummaryUrl),
+      getJson(closuresUrl)   //
     ]);
 
     const stats = results[0].status === 'fulfilled' ? results[0].value : { total_alerts: '-', total_jams: '-' };
@@ -644,6 +684,9 @@
     const levelHourRows = results[7].status === 'fulfilled' ? results[7].value : [];
     const weekdayRows = results[8].status === 'fulfilled' ? results[8].value : [];
     const lengthRankingRows = results[9].status === 'fulfilled' ? results[9].value : [];
+    const durationSummary = results[10]?.status === 'fulfilled' ? results[10].value : {};
+    const impactSummary = results[11]?.status === 'fulfilled' ? results[11].value : {};
+    const closures = results[12]?.status === 'fulfilled' ? results[12].value : [];
 
     populateAlertTypeFilter(alertsRaw);
     const alerts = alertTypeFilter ? alertsRaw.filter(a => a.type === alertTypeFilter) : alertsRaw;
@@ -653,16 +696,19 @@
     document.getElementById('trechosMapa').textContent = Array.isArray(geo.features) ? geo.features.length : 0;
     document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
     document.getElementById('footerUpdateTime').textContent = new Date().toLocaleString('pt-BR');
-
+    document.getElementById('avgDuration').textContent = durationSummary.avg_duration_min ?? '-';
+    document.getElementById('totalDelay').textContent = Math.round(impactSummary.total_delay_s ?? 0);
+    document.getElementById('impactScore').textContent = Math.round(impactSummary.impact_score ?? 0);
     document.getElementById('insights').innerHTML = buildInsights(
-      stats,
-      recentJams,
-      alerts,
-      lengthRankingRows,
-      levelRows,
-      timeSeriesRows,
-      alertsByTypeRows
-    );
+  stats,
+  recentJams,
+  alerts,
+  lengthRankingRows,
+  levelRows,
+  timeSeriesRows,
+  alertsByTypeRows,
+  closures
+);
 
     document.getElementById('jamsTableBody').innerHTML = recentJams.map(item => `
       <tr>
@@ -680,6 +726,17 @@
         <td>${item.subtype || '-'}</td>
       </tr>
     `).join('');
+
+    
+
+document.getElementById('closuresTableBody').innerHTML =
+  closures.map(c => `
+    <tr>
+      <td>${c.street}</td>
+      <td>${c.level}</td>
+      <td>${c.alert_subtype || c.alert_type}</td>
+    </tr>
+  `).join('');
 
     document.getElementById('rankingTableBody').innerHTML = lengthRankingRows.map(item => `
       <tr>
