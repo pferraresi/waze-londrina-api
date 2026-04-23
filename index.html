@@ -470,75 +470,88 @@
       select.value = current;
     }
 
-function buildInsights(stats, recentJams, recentAlerts, lengthRankingRows, levelData, timeSeriesRows, alertsByTypeRows, closures, criticalRows) {      const topAlert = recentAlerts[0];
-      const topStreet = lengthRankingRows[0];
+function buildInsights(
+  stats,
+  recentJams,
+  recentAlerts,
+  lengthRankingRows,
+  levelData,
+  timeSeriesRows,
+  alertsByTypeRows,
+  closures,
+  criticalRows
+) {
 
-      const dominantLevel = [...levelData].sort((a, b) => Number(b.total) - Number(a.total))[0];
-      const totalLevels = levelData.reduce((acc, row) => acc + Number(row.total), 0);
-      const dominantLevelShare = dominantLevel
-        ? ((Number(dominantLevel.total) / totalLevels) * 100).toFixed(1)
-        : null;
+  const topJam = recentJams[0];
+  const topAlert = recentAlerts[0];
+  const topStreet = lengthRankingRows[0];
 
-      const peakHour = [...timeSeriesRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
-      const topAlertType = [...alertsByTypeRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
+  const dominantLevel = [...levelData].sort((a, b) => Number(b.total) - Number(a.total))[0];
+  const totalLevels = levelData.reduce((acc, row) => acc + Number(row.total), 0);
+  const dominantLevelShare = dominantLevel
+    ? ((Number(dominantLevel.total) / totalLevels) * 100).toFixed(1)
+    : null;
 
-      const insightLines = [];
+  const peakHour = [...timeSeriesRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
+  const topAlertType = [...alertsByTypeRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
 
-      insightLines.push(
-        `<p><strong>Volume acumulado:</strong> o banco registra <strong>${stats.total_alerts}</strong> alerts e <strong>${stats.total_jams}</strong> jams.</p>`
-      );
+  const insightLines = [];
 
-      if (dominantLevel) {
-        insightLines.push(
-          `<p><strong>Gravidade predominante:</strong> o nível <strong>${dominantLevel.level}</strong> concentra <strong>${dominantLevel.total}</strong> registros, correspondendo a <strong>${dominantLevelShare}%</strong> da distribuição recente.</p>`
-        );
-      }
-
-      if (peakHour) {
-        insightLines.push(
-          `<p><strong>Janela crítica recente:</strong> o maior volume de jams ocorreu em <strong>${peakHour.hour_bucket}</strong>, com <strong>${peakHour.total}</strong> registros.</p>`
-        );
-      }
-
-      if (topStreet) {
-        insightLines.push(
-          `<p><strong>Rua com maior extensão congestionada:</strong> ${topStreet.street} (${Number(topStreet.total_length_m).toFixed(0)} m).</p>`
-        );
-      }
-
-      if (topAlertType) {
-        insightLines.push(
-          `<p><strong>Tipo de alert mais frequente:</strong> <strong>${topAlertType.type}</strong>, com <strong>${topAlertType.total}</strong> registros.</p>`
-        );
-      }
-
-      if (topJam) {
-        insightLines.push(
-          `<p><strong>Trecho recente em destaque:</strong> ${topJam.street || 'via não identificada'}, nível <strong>${topJam.level ?? '-'}</strong>, velocidade <strong>${topJam.speed_kmh ?? '-'}</strong> km/h.</p>`
-        );
-      }
-
-      if (topAlert) {
-        insightLines.push(
-          `<p><strong>Alert recente em destaque:</strong> ${topAlert.type || 'sem tipo'} em <strong>${topAlert.street || 'via não identificada'}</strong>.</p>`
-        );
-      }
-
-      if (closures && closures.length > 0) {
   insightLines.push(
-    `<p><strong>Observação:</strong> parte dos congestionamentos pode estar associada a obras ou interdições identificadas nos alerts.</p>`
+    `<p><strong>Volume acumulado:</strong> ${stats.total_alerts} alerts e ${stats.total_jams} jams.</p>`
   );
-}
 
-if (criticalRows && criticalRows.length > 0) {
-  const top = criticalRows[0];
-  insightLines.push(
-    `<p><strong>Ponto crítico identificado:</strong> ${top.street} apresenta o maior nível de criticidade urbana recente.</p>`
-  );
-}
+  if (dominantLevel) {
+    insightLines.push(
+      `<p><strong>Gravidade predominante:</strong> nível ${dominantLevel.level} (${dominantLevelShare}%).</p>`
+    );
+  }
 
-      return insightLines.join('');
-    }
+  if (peakHour) {
+    insightLines.push(
+      `<p><strong>Pico recente:</strong> ${peakHour.hour_bucket} (${peakHour.total} jams).</p>`
+    );
+  }
+
+  if (topStreet) {
+    insightLines.push(
+      `<p><strong>Maior extensão:</strong> ${topStreet.street} (${Number(topStreet.total_length_m).toFixed(0)} m).</p>`
+    );
+  }
+
+  if (topAlertType) {
+    insightLines.push(
+      `<p><strong>Alert dominante:</strong> ${topAlertType.type} (${topAlertType.total}).</p>`
+    );
+  }
+
+  if (topJam) {
+    insightLines.push(
+      `<p><strong>Trecho crítico recente:</strong> ${topJam.street || '-'} (nível ${topJam.level}).</p>`
+    );
+  }
+
+  if (topAlert) {
+    insightLines.push(
+      `<p><strong>Alert recente:</strong> ${topAlert.type || '-'} em ${topAlert.street || '-'}.</p>`
+    );
+  }
+
+  if (closures && closures.length > 0) {
+    insightLines.push(
+      `<p><strong>Observação:</strong> há indícios de obras/interdições influenciando o tráfego.</p>`
+    );
+  }
+
+  if (criticalRows && criticalRows.length > 0) {
+    const top = criticalRows[0];
+    insightLines.push(
+      `<p><strong>Ponto mais crítico:</strong> ${top.street} (criticidade ${top.criticidade}).</p>`
+    );
+  }
+
+  return insightLines.join('');
+}
 
     function buildJamLevelHourChart(rows) {
       const hours = Array.from({ length: 24 }, (_, i) => i);
