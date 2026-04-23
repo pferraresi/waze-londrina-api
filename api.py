@@ -431,3 +431,79 @@ def jams_with_closures(hours: int = Query(24, le=168), limit: int = Query(50, le
     rows = cur.fetchall()
     conn.close()
     return rows
+
+@app.get("/analytics/jams-with-closures")
+def jams_with_closures(hours: int = Query(24, le=168), limit: int = Query(100, le=1000)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            j.street,
+            j.level,
+            j.speed_kmh,
+            j.delay,
+            j.length,
+            j.collected_at AS jam_time,
+            a.type AS alert_type,
+            a.subtype AS alert_subtype,
+            a.report_description
+        FROM jams j
+        LEFT JOIN alerts a
+          ON j.street = a.street
+         AND a.collected_at BETWEEN j.collected_at - interval '30 minutes'
+                               AND j.collected_at + interval '30 minutes'
+        WHERE j.collected_at >= NOW() - (%s || ' hours')::interval
+          AND j.street IS NOT NULL
+          AND j.street != ''
+          AND (
+              a.type ILIKE '%%CLOSED%%'
+              OR a.subtype ILIKE '%%CONSTRUCTION%%'
+              OR a.subtype ILIKE '%%ROAD_CLOSED%%'
+              OR a.subtype ILIKE '%%HAZARD_ON_ROAD_CONSTRUCTION%%'
+              OR a.report_description ILIKE '%%obra%%'
+              OR a.report_description ILIKE '%%interdi%%'
+          )
+        ORDER BY j.collected_at DESC
+        LIMIT %s
+    """, (hours, limit))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+@app.get("/analytics/top-streets-with-closures")
+def top_streets_with_closures(hours: int = Query(24, le=168), limit: int = Query(20, le=100)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            j.street,
+            COUNT(*) AS total_jams,
+            SUM(COALESCE(j.length, 0)) AS total_length_m,
+            MAX(j.level) AS max_level
+        FROM jams j
+        JOIN alerts a
+          ON j.street = a.street
+         AND a.collected_at BETWEEN j.collected_at - interval '30 minutes'
+                               AND j.collected_at + interval '30 minutes'
+        WHERE j.collected_at >= NOW() - (%s || ' hours')::interval
+          AND j.street IS NOT NULL
+          AND j.street != ''
+          AND (
+              a.type ILIKE '%%CLOSED%%'
+              OR a.subtype ILIKE '%%CONSTRUCTION%%'
+              OR a.subtype ILIKE '%%ROAD_CLOSED%%'
+              OR a.subtype ILIKE '%%HAZARD_ON_ROAD_CONSTRUCTION%%'
+              OR a.report_description ILIKE '%%obra%%'
+              OR a.report_description ILIKE '%%interdi%%'
+          )
+        GROUP BY j.street
+        ORDER BY total_length_m DESC
+        LIMIT %s
+    """, (hours, limit))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
