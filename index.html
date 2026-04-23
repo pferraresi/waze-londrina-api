@@ -1,191 +1,654 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Projeto de Pesquisa Cidades Inteligetes - UEL</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Projeto de Pesquisa Cidades Inteligetes - UEL</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --shadow: 0 8px 24px rgba(0,0,0,0.08);
+      --radius: 18px;
+    }
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    * { box-sizing: border-box; }
 
-<style>
-body { font-family: Arial; margin:0; background:#f5f7fb; }
-.container { max-width:1400px; margin:auto; padding:20px; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
 
-.card { background:#fff; padding:18px; border-radius:16px; margin-bottom:16px; box-shadow:0 6px 20px rgba(0,0,0,0.08);}
-.panel-title { margin-bottom:10px; }
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 20px;
+    }
 
-.grid { display:grid; gap:16px; }
-.grid-2 { grid-template-columns:1fr 1fr; }
-.grid-4 { grid-template-columns:repeat(4,1fr); }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
 
-#map { height:500px; border-radius:16px; }
+    .title h1 {
+      margin: 0;
+      font-size: 30px;
+    }
 
-table { width:100%; border-collapse:collapse; }
-th,td { padding:8px; border-bottom:1px solid #eee; }
+    .title h2 {
+      margin: 6px 0 8px;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--muted);
+    }
 
-.chart-wrap { height:300px; }
+    .title p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
 
-.small { font-size:13px; color:#666; }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      box-shadow: var(--shadow);
+    }
 
-</style>
+    .controls input, .controls select, .controls button {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    .controls button {
+      cursor: pointer;
+      background: #111827;
+      color: white;
+      border: none;
+    }
+
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .card .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .card .value {
+      font-size: 32px;
+      font-weight: 700;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .mid-grid,
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    #map {
+      width: 100%;
+      height: 540px;
+      border-radius: 18px;
+    }
+
+    .panel-title {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .status-bar {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .chip {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #eef2ff;
+    }
+
+    .chart-wrap {
+      height: 320px;
+      position: relative;
+    }
+
+    .footer {
+      margin-top: 30px;
+      padding: 15px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    .error-box {
+      margin-top: 10px;
+      color: #b91c1c;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 1024px) {
+      .grid-cards { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+      .main-grid, .mid-grid, .bottom-grid { grid-template-columns: 1fr; }
+      #map { height: 420px; }
+    }
+
+    @media (max-width: 640px) {
+      .grid-cards { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
-
 <body>
-<div class="container">
+  <div class="container">
 
-<h1>Projeto de Pesquisa Cidades Inteligetes - UEL</h1>
-<h3>Observatório de Mobilidade Urbana – Londrina</h3>
+    <div class="topbar">
+      <div class="title">
+        <h1>Projeto de Pesquisa Cidades Inteligetes - UEL</h1>
+        <h2>Observatório de Mobilidade Urbana – Londrina</h2>
+        <p>
+          Monitoramento em tempo real de congestionamentos e alertas urbanos a partir de dados do Waze.<br>
+          Painel operacional e analítico para acompanhamento de alerts, jams e trechos críticos.
+        </p>
+      </div>
 
-<p class="small">
-Monitoramento em tempo real de congestionamentos e alertas urbanos a partir de dados do Waze.<br>
-Painel operacional e analítico para acompanhamento de alerts, jams e trechos críticos.
-</p>
+      <div class="controls">
+        <label for="apiBase">API</label>
+        <input id="apiBase" size="42" value="https://web-production-b07b0.up.railway.app" />
 
-<div class="grid grid-4">
-<div class="card"><b>Alerts</b><div id="totalAlerts">-</div></div>
-<div class="card"><b>Jams</b><div id="totalJams">-</div></div>
-<div class="card"><b>Trechos</b><div id="trechosMapa">-</div></div>
-<div class="card"><b>Atualização</b><div id="ultimaAtualizacao">-</div></div>
-</div>
+        <label for="streetFilter">Rua</label>
+        <input id="streetFilter" placeholder="Ex.: Constantino" />
 
-<div class="card">
-<b>Metodologia</b><br>
-<span class="small">
-Dados coletados automaticamente via Waze Partner Feed.
-</span>
-</div>
+        <label for="alertTypeFilter">Tipo de alert</label>
+        <select id="alertTypeFilter">
+          <option value="">Todos</option>
+        </select>
 
-<div class="card">
-<b>Limitações</b><br>
-<span class="small">
-Dados dependem do uso do Waze pelos usuários.
-</span>
-</div>
+        <label for="refreshSeconds">Atualização (s)</label>
+        <select id="refreshSeconds">
+          <option value="60">60</option>
+          <option value="120" selected>120</option>
+          <option value="300">300</option>
+        </select>
 
-<div class="grid grid-2">
+        <button id="reloadBtn">Atualizar</button>
+      </div>
+    </div>
 
-<div class="card">
-<h2 class="panel-title">Mapa</h2>
-<div id="map"></div>
-</div>
+    <div class="card" style="margin-bottom:18px;">
+      <strong>Metodologia</strong><br>
+      <span class="small">
+        Os dados são coletados automaticamente a partir do Waze Partner Feed, com atualização contínua.
+        Os registros incluem alertas (incidentes reportados por usuários) e congestionamentos (jams),
+        classificados em níveis de 1 a 5 conforme critérios da plataforma.
+      </span>
+    </div>
 
-<div class="card">
-<h2 class="panel-title">Jams recentes</h2>
-<table>
-<thead><tr><th>Rua</th><th>Nível</th><th>Vel</th><th>Atraso</th></tr></thead>
-<tbody id="jamsTableBody"></tbody>
-</table>
-</div>
+    <div class="grid-cards">
+      <div class="card"><div class="label">Total de alerts</div><div class="value" id="totalAlerts">-</div></div>
+      <div class="card"><div class="label">Total de jams</div><div class="value" id="totalJams">-</div></div>
+      <div class="card"><div class="label">Trechos no mapa</div><div class="value" id="trechosMapa">-</div></div>
+      <div class="card"><div class="label">Última atualização</div><div class="value" id="ultimaAtualizacao" style="font-size:20px;">-</div></div>
+    </div>
 
-</div>
+    <div class="card" style="margin-bottom:18px; border-left:4px solid #f59e0b;">
+      <strong>Limitações dos dados</strong><br>
+      <span class="small">
+        Os dados refletem a atividade dos usuários da plataforma Waze e, portanto, representam um sistema
+        sociotécnico de participação cidadã. Dessa forma, podem não corresponder integralmente às condições
+        reais de tráfego urbano, estando sujeitos a vieses de uso, cobertura geográfica e comportamento dos usuários.
+      </span>
+    </div>
 
-<div class="grid grid-2">
+    <div class="main-grid">
+      <div class="card">
+        <h2 class="panel-title">Mapa de congestionamentos</h2>
+        <div id="map"></div>
+        <div style="margin-top:10px; font-size:14px;">
+          <strong>Legenda de níveis de congestionamento:</strong><br>
+          <span style="color:#2b8cbe;">●</span> Nível 1 — Trânsito leve<br>
+          <span style="color:#fdcc8a;">●</span> Nível 2 — Leve a moderado<br>
+          <span style="color:#fc8d59;">●</span> Nível 3 — Moderado<br>
+          <span style="color:#e34a33;">●</span> Nível 4 — Pesado<br>
+          <span style="color:#b30000;">●</span> Nível 5 — Congestionamento crítico
+        </div>
+        <div class="status-bar" id="mapStatus">Aguardando dados...</div>
+        <div class="error-box" id="errorBox"></div>
+      </div>
 
-<div class="card">
-<h2>Ranking por extensão</h2>
-<table>
-<thead><tr><th>Rua</th><th>Extensão (m)</th></tr></thead>
-<tbody id="rankingTableBody"></tbody>
-</table>
-</div>
+      <div class="card">
+        <h2 class="panel-title">Jams recentes</h2>
+        <div style="max-height:560px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Rua</th>
+                <th>Nível</th>
+                <th>Velocidade</th>
+                <th>Atraso</th>
+              </tr>
+            </thead>
+            <tbody id="jamsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
-<div class="card">
-<h2>Níveis ao longo do dia</h2>
-<div class="chart-wrap"><canvas id="jamLevelChart"></canvas></div>
-</div>
+    <div class="mid-grid">
+      <div class="card">
+        <h2 class="panel-title">Ranking por extensão de congestionamentos</h2>
+        <div style="max-height:420px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Rua</th>
+                <th>Extensão total (m)</th>
+              </tr>
+            </thead>
+            <tbody id="rankingTableBody"></tbody>
+          </table>
+        </div>
+      </div>
 
-</div>
+      <div class="card">
+        <h2 class="panel-title">Níveis de congestionamento ao longo do dia</h2>
+        <div class="chart-wrap">
+          <canvas id="jamLevelChart"></canvas>
+        </div>
+      </div>
+    </div>
 
-<div class="grid grid-2">
+    <div class="bottom-grid">
+      <div class="card">
+        <h2 class="panel-title">Alertas recentes</h2>
+        <div style="max-height:420px; overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Rua</th>
+                <th>Tipo</th>
+                <th>Subtype</th>
+              </tr>
+            </thead>
+            <tbody id="alertsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
 
-<div class="card">
-<h2>Alertas</h2>
-<table>
-<thead><tr><th>Rua</th><th>Tipo</th></tr></thead>
-<tbody id="alertsTableBody"></tbody>
-</table>
-</div>
+      <div class="card">
+        <h2 class="panel-title">Série temporal recente de jams</h2>
+        <div class="chart-wrap">
+          <canvas id="timeSeriesChart"></canvas>
+        </div>
+        <div id="insights" class="small" style="margin-top:12px;">Carregando sugestões...</div>
+      </div>
+    </div>
 
-<div class="card">
-<h2>Série temporal</h2>
-<div class="chart-wrap"><canvas id="timeSeriesChart"></canvas></div>
-<div id="insights"></div>
-</div>
+    <div class="card">
+      <h2 class="panel-title">Jams por dia da semana (últimos dias)</h2>
+      <div class="chart-wrap">
+        <canvas id="weekdayChart"></canvas>
+      </div>
+    </div>
 
-</div>
+    <div class="footer">
+      <div><strong>Projeto de Pesquisa Cidades Inteligetes - UEL</strong></div>
+      <div style="margin-top:5px;">Observatório de Mobilidade Urbana – Londrina</div>
+      <div style="margin-top:5px;">Fonte: Waze Partner Feed</div>
+      <div style="margin-top:5px;">Última atualização do painel: <span id="footerUpdateTime">-</span></div>
+    </div>
 
-<div class="card">
-<h2>Jams por dia da semana</h2>
-<div class="chart-wrap"><canvas id="weekdayChart"></canvas></div>
-</div>
+  </div>
 
-<div class="card small" style="text-align:center">
-Projeto UEL • Fonte: Waze • Atualizado em <span id="footerUpdateTime">-</span>
-</div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([-23.3103, -51.1628], 13);
 
-</div>
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
 
-<script>
+    let geoLayer = null;
+    let refreshHandle = null;
+    let jamLevelChart = null;
+    let timeSeriesChart = null;
+    let weekdayChart = null;
 
-const apiBase = "https://web-production-b07b0.up.railway.app";
+    function getColor(level) {
+      if (level >= 5) return '#b30000';
+      if (level === 4) return '#e34a33';
+      if (level === 3) return '#fc8d59';
+      if (level === 2) return '#fdcc8a';
+      return '#2b8cbe';
+    }
 
-const map = L.map('map').setView([-23.31,-51.16],13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    function style(feature) {
+      return {
+        color: getColor(feature.properties.level ?? 1),
+        weight: 7,
+        opacity: 0.95
+      };
+    }
 
-let geoLayer;
-let jamLevelChart, timeSeriesChart, weekdayChart;
+    function onEachFeature(feature, layer) {
+      const p = feature.properties || {};
+      layer.bindPopup(`
+        <strong>${p.street || 'Via desconhecida'}</strong><br>
+        <span class="chip">Nível ${p.level ?? '-'}</span><br><br>
+        Velocidade: ${p.speed ?? '-'} km/h<br>
+        Extensão: ${p.length ?? '-'} m<br>
+        Atraso: ${p.delay ?? '-'} s<br>
+        Coletado em: ${p.collected_at ?? '-'}
+      `);
+    }
 
-function getColor(l){
-return ['#2b8cbe','#fdcc8a','#fc8d59','#e34a33','#b30000'][l-1]||'#2b8cbe';
-}
+    async function getJson(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status} em ${url}`);
+      return response.json();
+    }
 
-function style(f){ return {color:getColor(f.properties.level), weight:6}; }
+    function populateAlertTypeFilter(alerts) {
+      const select = document.getElementById('alertTypeFilter');
+      const current = select.value;
+      const types = [...new Set(alerts.map(a => a.type).filter(Boolean))].sort();
+      select.innerHTML = '<option value="">Todos</option>' + types.map(t => `<option value="${t}">${t}</option>`).join('');
+      select.value = current;
+    }
 
-function onEachFeature(f,l){
-l.bindPopup(`${f.properties.street}`);
-}
+    function buildInsights(stats, recentJams, recentAlerts, lengthRankingRows, levelData, timeSeriesRows, alertsByTypeRows) {
+      const topJam = recentJams[0];
+      const topAlert = recentAlerts[0];
+      const topStreet = lengthRankingRows[0];
 
-async function load(){
+      const dominantLevel = [...levelData].sort((a, b) => Number(b.total) - Number(a.total))[0];
+      const totalLevels = levelData.reduce((acc, row) => acc + Number(row.total), 0);
+      const dominantLevelShare = dominantLevel
+        ? ((Number(dominantLevel.total) / totalLevels) * 100).toFixed(1)
+        : null;
 
-const [stats,alerts,jams,geo,levels,ranking,alertsType,series,weekday] = await Promise.all([
-fetch(apiBase+"/stats").then(r=>r.json()),
-fetch(apiBase+"/alerts").then(r=>r.json()),
-fetch(apiBase+"/jams").then(r=>r.json()),
-fetch(apiBase+"/map/jams").then(r=>r.json()),
-fetch(apiBase+"/analytics/jams-by-level").then(r=>r.json()),
-fetch(apiBase+"/analytics/top-streets-by-length").then(r=>r.json()),
-fetch(apiBase+"/analytics/alerts-by-type").then(r=>r.json()),
-fetch(apiBase+"/analytics/jams-timeseries-hourly").then(r=>r.json()),
-fetch(apiBase+"/analytics/jams-by-weekday-hour").then(r=>r.json())
+      const peakHour = [...timeSeriesRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
+      const topAlertType = [...alertsByTypeRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
+
+      const insightLines = [];
+
+      insightLines.push(
+        `<p><strong>Volume acumulado:</strong> o banco registra <strong>${stats.total_alerts}</strong> alerts e <strong>${stats.total_jams}</strong> jams.</p>`
+      );
+
+      if (dominantLevel) {
+        insightLines.push(
+          `<p><strong>Gravidade predominante:</strong> o nível <strong>${dominantLevel.level}</strong> concentra <strong>${dominantLevel.total}</strong> registros, correspondendo a <strong>${dominantLevelShare}%</strong> da distribuição recente.</p>`
+        );
+      }
+
+      if (peakHour) {
+        insightLines.push(
+          `<p><strong>Janela crítica recente:</strong> o maior volume de jams ocorreu em <strong>${peakHour.hour_bucket}</strong>, com <strong>${peakHour.total}</strong> registros.</p>`
+        );
+      }
+
+      if (topStreet) {
+        insightLines.push(
+          `<p><strong>Rua com maior extensão congestionada:</strong> ${topStreet.street} (${Number(topStreet.total_length_m).toFixed(0)} m).</p>`
+        );
+      }
+
+      if (topAlertType) {
+        insightLines.push(
+          `<p><strong>Tipo de alert mais frequente:</strong> <strong>${topAlertType.type}</strong>, com <strong>${topAlertType.total}</strong> registros.</p>`
+        );
+      }
+
+      if (topJam) {
+        insightLines.push(
+          `<p><strong>Trecho recente em destaque:</strong> ${topJam.street || 'via não identificada'}, nível <strong>${topJam.level ?? '-'}</strong>, velocidade <strong>${topJam.speed_kmh ?? '-'}</strong> km/h.</p>`
+        );
+      }
+
+      if (topAlert) {
+        insightLines.push(
+          `<p><strong>Alert recente em destaque:</strong> ${topAlert.type || 'sem tipo'} em <strong>${topAlert.street || 'via não identificada'}</strong>.</p>`
+        );
+      }
+
+      return insightLines.join('');
+    }
+
+    function buildJamLevelHourChart(rows) {
+      const hours = Array.from({ length: 24 }, (_, i) => i);
+
+      const levels = {
+        1: Array(24).fill(0),
+        2: Array(24).fill(0),
+        3: Array(24).fill(0),
+        4: Array(24).fill(0),
+        5: Array(24).fill(0)
+      };
+
+      rows.forEach(row => {
+        const hour = Number(row.hour_of_day);
+        const level = Number(row.level);
+        const total = Number(row.total);
+
+        if (levels[level] && hour >= 0 && hour <= 23) {
+          levels[level][hour] = total;
+        }
+      });
+
+      const ctx = document.getElementById('jamLevelChart');
+
+      if (jamLevelChart) jamLevelChart.destroy();
+
+      jamLevelChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: hours.map(h => `${String(h).padStart(2, '0')}:00`),
+          datasets: [
+            { label: 'Nível 1', data: levels[1], tension: 0.25, fill: false },
+            { label: 'Nível 2', data: levels[2], tension: 0.25, fill: false },
+            { label: 'Nível 3', data: levels[3], tension: 0.25, fill: false },
+            { label: 'Nível 4', data: levels[4], tension: 0.25, fill: false },
+            { label: 'Nível 5', data: levels[5], tension: 0.25, fill: false }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+    }
+
+    function buildTimeSeries(seriesRows) {
+      const labels = seriesRows.map(r => r.hour_bucket);
+      const values = seriesRows.map(r => Number(r.total));
+
+      const ctx = document.getElementById('timeSeriesChart');
+      if (timeSeriesChart) timeSeriesChart.destroy();
+
+      timeSeriesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Jams por hora',
+            data: values,
+            tension: 0.25,
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    function buildWeekdayChart(rows) {
+      const weekdayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+      const data = {
+        0: Array(24).fill(0),
+        1: Array(24).fill(0),
+        2: Array(24).fill(0),
+        3: Array(24).fill(0),
+        4: Array(24).fill(0),
+        5: Array(24).fill(0),
+        6: Array(24).fill(0)
+      };
+
+      rows.forEach(r => {
+        const w = Number(r.weekday);
+        const h = Number(r.hour);
+        const total = Number(r.total);
+
+        if (data[w] && h >= 0 && h <= 23) {
+          data[w][h] += total;
+        }
+      });
+
+      const ctx = document.getElementById('weekdayChart');
+
+      if (weekdayChart) weekdayChart.destroy();
+
+      weekdayChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+          datasets: Object.keys(data).map(w => ({
+            label: weekdayNames[w],
+            data: data[w],
+            tension: 0.25,
+            fill: false
+          }))
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+    }
+
+    async function loadDashboard() {
+      const errorBox = document.getElementById('errorBox');
+      errorBox.textContent = '';
+
+      try {
+        const apiBase = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
+        const streetFilter = document.getElementById('streetFilter').value.trim();
+        const alertTypeFilter = document.getElementById('alertTypeFilter').value;
+
+        const statsUrl = `${apiBase}/stats`;
+        const alertsUrl = `${apiBase}/alerts?limit=50`;
+        const recentJamsUrl = streetFilter
+          ? `${apiBase}/jams/por-rua?rua=${encodeURIComponent(streetFilter)}&limit=20`
+          : `${apiBase}/jams?limit=20`;
+        const mapUrl = `${apiBase}/map/jams?limit=50`;
+        const levelUrl = `${apiBase}/analytics/jams-by-level`;
+        const alertsByTypeUrl = `${apiBase}/analytics/alerts-by-type`;
+        const timeSeriesUrl = `${apiBase}/analytics/jams-timeseries-hourly?hours=24`;
+        const levelHourUrl = `${apiBase}/analytics/jams-by-level-hour?hours=24`;
+        const weekdayUrl = `${apiBase}/analytics/jams-by-weekday-hour?days=7`;
+        const lengthRankingUrl = `${apiBase}/analytics/top-streets-by-length?limit=10&hours=24`;
+
+        const results = await Promise.allSettled([
+  getJson(statsUrl),
+  getJson(alertsUrl),
+  getJson(recentJamsUrl),
+  getJson(mapUrl),
+  getJson(levelUrl),
+  getJson(alertsByTypeUrl),
+  getJson(timeSeriesUrl),
+  getJson(levelHourUrl),
+  getJson(weekdayUrl),
+  getJson(lengthRankingUrl)
 ]);
 
-document.getElementById('totalAlerts').textContent=stats.total_alerts;
-document.getElementById('totalJams').textContent=stats.total_jams;
-document.getElementById('trechosMapa').textContent=geo.features.length;
-document.getElementById('ultimaAtualizacao').textContent=new Date().toLocaleTimeString();
-document.getElementById('footerUpdateTime').textContent=new Date().toLocaleString();
+const stats = results[0].status === 'fulfilled' ? results[0].value : { total_alerts: '-', total_jams: '-' };
+const alertsRaw = results[1].status === 'fulfilled' ? results[1].value : [];
+const recentJams = results[2].status === 'fulfilled' ? results[2].value : [];
+const geo = results[3].status === 'fulfilled' ? results[3].value : { type: 'FeatureCollection', features: [] };
+const levelRows = results[4].status === 'fulfilled' ? results[4].value : [];
+const alertsByTypeRows = results[5].status === 'fulfilled' ? results[5].value : [];
+const timeSeriesRows = results[6].status === 'fulfilled' ? results[6].value : [];
+const levelHourRows = results[7].status === 'fulfilled' ? results[7].value : [];
+const weekdayRows = results[8].status === 'fulfilled' ? results[8].value : [];
+const lengthRankingRows = results[9].status === 'fulfilled' ? results[9].value : [];
 
-document.getElementById('jamsTableBody').innerHTML=
-jams.map(j=>`<tr><td>${j.street}</td><td>${j.level}</td><td>${j.speed_kmh}</td><td>${j.delay}</td></tr>`).join('');
+        populateAlertTypeFilter(alertsRaw);
+        const alerts = alertTypeFilter ? alertsRaw.filter(a => a.type === alertTypeFilter) : alertsRaw;
 
-document.getElementById('alertsTableBody').innerHTML=
-alerts.map(a=>`<tr><td>${a.street}</td><td>${a.type}</td></tr>`).join('');
-
-document.getElementById('rankingTableBody').innerHTML=
-ranking.map(r=>`<tr><td>${r.street}</td><td>${Math.round(r.total_length_m)}</td></tr>`).join('');
-
-document.getElementById('insights').innerHTML=
-`<p><b>Rua crítica:</b> ${ranking[0]?.street}</p>`;
-
-if(geoLayer) map.removeLayer(geoLayer);
-geoLayer=L.geoJSON(geo,{style,onEachFeature}).addTo(map);
-
-}
-
-load();
-
-</script>
-
-</body>
-</html>
+        document.getElementById('totalAlerts').textContent = stats.total_alerts ?? '-';
+        document.getElementById('totalJams').textContent = stats.total_jams ?? '-';
+        document.getElementById('trechosMapa').textContent = Array.isArray(geo.features) ? geo.features.length : 0;
+        document.ge
