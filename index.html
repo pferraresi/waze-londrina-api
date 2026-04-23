@@ -240,13 +240,13 @@
 
     <div class="mid-grid">
       <div class="card">
-        <h2 class="panel-title">Ranking de ruas com mais jams</h2>
+        <h2 class="panel-title">Ranking por extensão de congestionamentos</h2>
         <div style="max-height:420px; overflow:auto;">
           <table>
             <thead>
               <tr>
                 <th>Rua</th>
-                <th>Ocorrências</th>
+                <th>Extensão Total</th>
               </tr>
             </thead>
             <tbody id="rankingTableBody"></tbody>
@@ -255,7 +255,7 @@
       </div>
 
       <div class="card">
-        <h2 class="panel-title">Distribuição por nível de congestionamento</h2>
+        <h2 class="panel-title">Níveis de congestionamento ao longo do dia</h2>
         <div class="chart-wrap">
           <canvas id="jamLevelChart"></canvas>
         </div>
@@ -280,6 +280,13 @@
       </div>
 
       <div class="card">
+    <h2 class="panel-title">Jams por dia da semana (últimos dias)</h2>
+   <div class="chart-wrap">
+     <canvas id="weekdayChart"></canvas>
+    </div>
+  </div>
+
+      <div class="card">
         <h2 class="panel-title">Série temporal recente de jams</h2>
         <div class="chart-wrap">
           <canvas id="timeSeriesChart"></canvas>
@@ -289,12 +296,7 @@
     </div>
   </div>
 
-      <div class="card">
-    <h2 class="panel-title">Jams por dia da semana (últimos dias)</h2>
-   <div class="chart-wrap">
-     <canvas id="weekdayChart"></canvas>
-    </div>
-  </div>
+      
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
@@ -355,7 +357,6 @@
     : null;
 
   const peakHour = [...timeSeriesRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
-
   const topAlertType = [...alertsByTypeRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
 
   const insightLines = [];
@@ -378,7 +379,7 @@
 
   if (topStreet) {
     insightLines.push(
-      `<p><strong>Rua mais recorrente:</strong> <strong>${topStreet.street}</strong> aparece com <strong>${topStreet.total}</strong> ocorrências na amostra analítica.</p>`
+      `<p><strong>Rua com maior extensão congestionada:</strong> ${topStreet.street} (${Number(topStreet.total_length_m).toFixed(0)} m).</p>`
     );
   }
 
@@ -425,9 +426,7 @@
   });
 
   const ctx = document.getElementById('jamLevelChart');
-  document.getElementById('footerUpdateTime').textContent =
-  new Date().toLocaleString('pt-BR');
-
+  
   if (jamLevelChart) jamLevelChart.destroy();
 
   jamLevelChart = new Chart(ctx, {
@@ -499,8 +498,9 @@
       const timeSeriesUrl = `${apiBase}/analytics/jams-timeseries-hourly?hours=24`;
       const levelHourUrl = `${apiBase}/analytics/jams-by-level-hour?hours=24`;
       const weekdayUrl = `${apiBase}/analytics/jams-by-weekday-hour?days=7`;
+      const lengthRankingUrl = `${apiBase}/analytics/top-streets-by-length?limit=10&hours=24`;
 
-      const [stats, alertsRaw, recentJams, geo, levelRows, rankingRows, alertsByTypeRows, timeSeriesRows, levelHourRows, weekdayRows] = await Promise.all([
+      const [stats, alertsRaw, recentJams, geo, levelRows, rankingRows, alertsByTypeRows, timeSeriesRows, levelHourRows, weekdayRows, lengthRankingRows] = await Promise.all([
   getJson(statsUrl),
   getJson(alertsUrl),
   getJson(recentJamsUrl),
@@ -510,7 +510,8 @@
   getJson(alertsByTypeUrl),
   getJson(timeSeriesUrl),
   getJson(levelHourUrl),
-  getJson(weekdayUrl)
+  getJson(weekdayUrl),
+  getJson(lengthRankingUrl)
 ]);
 
       populateAlertTypeFilter(alertsRaw);
@@ -520,15 +521,17 @@
       document.getElementById('totalJams').textContent = stats.total_jams ?? '-';
       document.getElementById('trechosMapa').textContent = geo.features ? geo.features.length : 0;
       document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
+      document.getElementById('footerUpdateTime').textContent = new Date().toLocaleString('pt-BR');
       document.getElementById('insights').innerHTML = buildInsights(
         stats,
         recentJams,
         alerts,
-        rankingRows,
+        lengthRankingRows,
         levelRows,
         timeSeriesRows,
         alertsByTypeRows
-          );
+      );
+    );
       const jamsBody = document.getElementById('jamsTableBody');
       jamsBody.innerHTML = recentJams.map(item => `
         <tr>
@@ -549,12 +552,12 @@
       `).join('');
 
       const rankingBody = document.getElementById('rankingTableBody');
-      rankingBody.innerHTML = rankingRows.map(item => `
-        <tr>
-          <td>${item.street}</td>
-          <td>${item.total}</td>
-        </tr>
-      `).join('');
+rankingBody.innerHTML = lengthRankingRows.map(item => `
+  <tr>
+    <td>${item.street}</td>
+    <td>${Number(item.total_length_m).toFixed(0)}</td>
+  </tr>
+`).join('');
 
       buildJamLevelHourChart(levelHourRows);
       buildTimeSeries(timeSeriesRows);
@@ -568,6 +571,10 @@
 
       const alertTypes = alertsByTypeRows.map(r => `${r.type}: ${r.total}`).join(' | ');
       document.getElementById('mapStatus').textContent = `Mapa atualizado em ${new Date().toLocaleString('pt-BR')} | Alerts por tipo: ${alertTypes}`;
+    
+  document.getElementById('footerUpdateTime').textContent =
+  new Date().toLocaleString('pt-BR');
+    
     }
 
     function startAutoRefresh() {
