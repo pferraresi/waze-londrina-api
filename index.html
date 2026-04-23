@@ -375,6 +375,22 @@
 </div>
 
 <div class="card">
+  <h2 class="panel-title">Pontos mais críticos da cidade</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Rua</th>
+        <th>Nível</th>
+        <th>Duração (min)</th>
+        <th>Extensão (m)</th>
+        <th>Criticidade</th>
+      </tr>
+    </thead>
+    <tbody id="criticalTableBody"></tbody>
+  </table>
+</div>
+
+<div class="card">
   <h2 class="panel-title">Ruas com possível obra/interdição</h2>
   <table>
     <thead>
@@ -454,8 +470,7 @@
       select.value = current;
     }
 
-function buildInsights(stats, recentJams, recentAlerts, lengthRankingRows, levelData, timeSeriesRows, alertsByTypeRows, closures)   {const topJam = recentJams[0];
-      const topAlert = recentAlerts[0];
+function buildInsights(stats, recentJams, recentAlerts, lengthRankingRows, levelData, timeSeriesRows, alertsByTypeRows, closures, criticalRows) {      const topAlert = recentAlerts[0];
       const topStreet = lengthRankingRows[0];
 
       const dominantLevel = [...levelData].sort((a, b) => Number(b.total) - Number(a.total))[0];
@@ -512,6 +527,13 @@ function buildInsights(stats, recentJams, recentAlerts, lengthRankingRows, level
       if (closures && closures.length > 0) {
   insightLines.push(
     `<p><strong>Observação:</strong> parte dos congestionamentos pode estar associada a obras ou interdições identificadas nos alerts.</p>`
+  );
+}
+
+if (criticalRows && criticalRows.length > 0) {
+  const top = criticalRows[0];
+  insightLines.push(
+    `<p><strong>Ponto crítico identificado:</strong> ${top.street} apresenta o maior nível de criticidade urbana recente.</p>`
   );
 }
 
@@ -655,6 +677,7 @@ function buildInsights(stats, recentJams, recentAlerts, lengthRankingRows, level
   const lengthRankingUrl = `${apiBase}/analytics/top-streets-by-length?limit=10&hours=24`;
   const durationSummaryUrl = `${apiBase}/analytics/jam-duration-summary`;
   const impactSummaryUrl = `${apiBase}/analytics/impact-summary`;
+  const criticalUrl = `${apiBase}/analytics/critical-jams`;
   const closuresUrl = `${apiBase}/analytics/jams-with-closures?limit=20`;
 
   try {
@@ -671,7 +694,8 @@ function buildInsights(stats, recentJams, recentAlerts, lengthRankingRows, level
       getJson(lengthRankingUrl),
       getJson(durationSummaryUrl),
       getJson(impactSummaryUrl),
-      getJson(closuresUrl)   //
+      getJson(closuresUrl),
+      getJson(criticalUrl)   //
     ]);
 
     const stats = results[0].status === 'fulfilled' ? results[0].value : { total_alerts: '-', total_jams: '-' };
@@ -687,6 +711,7 @@ function buildInsights(stats, recentJams, recentAlerts, lengthRankingRows, level
     const durationSummary = results[10]?.status === 'fulfilled' ? results[10].value : {};
     const impactSummary = results[11]?.status === 'fulfilled' ? results[11].value : {};
     const closures = results[12]?.status === 'fulfilled' ? results[12].value : [];
+    const criticalRows = results[13]?.status === 'fulfilled' ? results[13].value : [];
 
     populateAlertTypeFilter(alertsRaw);
     const alerts = alertTypeFilter ? alertsRaw.filter(a => a.type === alertTypeFilter) : alertsRaw;
@@ -707,7 +732,8 @@ function buildInsights(stats, recentJams, recentAlerts, lengthRankingRows, level
   levelRows,
   timeSeriesRows,
   alertsByTypeRows,
-  closures
+  closures,
+  criticalRows
 );
 
     document.getElementById('jamsTableBody').innerHTML = recentJams.map(item => `
@@ -744,6 +770,18 @@ document.getElementById('closuresTableBody').innerHTML =
         <td>${Number(item.total_length_m || 0).toFixed(0)}</td>
       </tr>
     `).join('');
+
+document.getElementById('criticalTableBody').innerHTML =
+  criticalRows.map(c => `
+    <tr>
+      <td>${c.street}</td>
+      <td>${c.level}</td>
+      <td>${c.duration_min}</td>
+      <td>${c.avg_length_m}</td>
+      <td><strong>${c.criticidade}</strong></td>
+    </tr>
+  `).join('');
+
 
     if (levelHourRows.length) buildJamLevelHourChart(levelHourRows);
     if (timeSeriesRows.length) buildTimeSeries(timeSeriesRows);
