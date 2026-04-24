@@ -93,7 +93,7 @@
     status.innerText = "Atualizando...";
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/map/jams?limit=50");
+      const response = await fetch("https://web-production-b07b0.up.railway.app/map/jams");
       const data = await response.json();
 
       if (geoLayer) {
