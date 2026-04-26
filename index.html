@@ -8,28 +8,42 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg: #f6f8fb;
-      --card: #ffffff;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --border: #e5e7eb;
-      --shadow: 0 8px 24px rgba(0,0,0,0.08);
-      --radius: 18px;
+      --bg: #f3f6fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #0f766e;
+      --danger: #b91c1c;
+      --radius: 16px;
+      --shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
+      font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
+      line-height: 1.4;
     }
 
     .container {
-      max-width: 1440px;
+      max-width: 1480px;
       margin: 0 auto;
       padding: 20px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
     }
 
     .topbar {
@@ -37,113 +51,152 @@
       justify-content: space-between;
       align-items: flex-start;
       gap: 16px;
-      margin-bottom: 18px;
       flex-wrap: wrap;
     }
 
     .title h1 {
       margin: 0;
-      font-size: 30px;
-    }
-
-    .title h2 {
-      margin: 6px 0 8px;
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--muted);
+      font-size: clamp(22px, 3vw, 30px);
+      letter-spacing: -0.02em;
     }
 
     .title p {
       margin: 6px 0 0;
       color: var(--muted);
-      line-height: 1.45;
+      max-width: 860px;
     }
 
     .controls {
       display: flex;
-      gap: 10px;
       flex-wrap: wrap;
+      gap: 10px;
       align-items: center;
-      background: var(--card);
+      background: var(--surface-soft);
       border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px;
-      box-shadow: var(--shadow);
+      border-radius: 12px;
+      padding: 10px;
     }
 
-    .controls input, .controls select, .controls button {
-      padding: 10px 12px;
+    .controls label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .controls input,
+    .controls select,
+    .controls button {
       border: 1px solid var(--border);
       border-radius: 10px;
+      padding: 9px 12px;
       font-size: 14px;
+      background: #fff;
     }
 
     .controls button {
-      cursor: pointer;
-      background: #111827;
-      color: white;
+      background: var(--primary);
+      color: #fff;
       border: none;
+      font-weight: 600;
+      cursor: pointer;
     }
 
-    .grid-cards {
+    .controls button:hover { filter: brightness(0.95); }
+
+    .metrics {
       display: grid;
       grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 14px;
+    }
+
+    .metric-title {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .metric-value {
+      margin-top: 8px;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .layout-main,
+    .layout-mid,
+    .layout-bottom {
+      display: grid;
       gap: 16px;
       margin-bottom: 18px;
     }
 
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 18px;
+    .layout-main { grid-template-columns: 1.5fr 1fr; }
+    .layout-mid,
+    .layout-bottom { grid-template-columns: 1fr 1fr; }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 18px;
+      letter-spacing: -0.01em;
     }
 
-    .card .label {
+    .section-subtitle {
+      margin: -4px 0 12px;
       color: var(--muted);
       font-size: 13px;
-      margin-bottom: 10px;
-    }
-
-    .card .value {
-      font-size: 32px;
-      font-weight: 700;
-    }
-
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1.5fr 1fr;
-      gap: 18px;
-      margin-bottom: 18px;
-    }
-
-    .mid-grid,
-    .bottom-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 18px;
-      margin-bottom: 18px;
     }
 
     #map {
       width: 100%;
-      height: 540px;
-      border-radius: 18px;
+      height: 520px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
     }
 
-    .panel-title {
-      margin: 0 0 14px;
-      font-size: 18px;
+    .status-bar {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .loading-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #ecfeff;
+      color: #0f766e;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .error-box {
+      margin-top: 10px;
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: var(--danger);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      display: none;
+      white-space: pre-wrap;
+    }
+
+    .table-wrap {
+      max-height: 420px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 14px;
+      background: #fff;
     }
 
-    th, td {
+    th,
+    td {
       padding: 10px 8px;
       border-bottom: 1px solid var(--border);
       text-align: left;
@@ -151,73 +204,94 @@
     }
 
     th {
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
       color: var(--muted);
-      font-weight: 600;
-    }
-
-    .small {
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .status-bar {
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .chip {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 999px;
       font-size: 12px;
-      background: #eef2ff;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      z-index: 1;
     }
 
     .chart-wrap {
       height: 320px;
-      position: relative;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
+      background: #fff;
     }
 
-    .footer {
-      margin-top: 30px;
-      padding: 15px;
-      text-align: center;
+    .insights {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: 12px;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .chip {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .legend {
+      margin-top: 10px;
       font-size: 13px;
       color: var(--muted);
-      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(180px, 1fr));
+      gap: 4px 12px;
     }
 
-    .error-box {
-      margin-top: 10px;
-      color: #b91c1c;
+    .loading .metric-value,
+    .loading .table-wrap,
+    .loading .chart-wrap,
+    .loading .insights {
+      opacity: 0.65;
+    }
+
+
+    .footer {
+      color: var(--muted);
       font-size: 13px;
-      white-space: pre-wrap;
+      text-align: center;
     }
 
-    @media (max-width: 1024px) {
-      .grid-cards { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
-      .main-grid, .mid-grid, .bottom-grid { grid-template-columns: 1fr; }
-      #map { height: 420px; }
+    .footer strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    @media (max-width: 1100px) {
+      .metrics { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+      .layout-main,
+      .layout-mid,
+      .layout-bottom { grid-template-columns: 1fr; }
+      #map { height: 430px; }
     }
 
     @media (max-width: 640px) {
-      .grid-cards { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: 1fr; }
+      .controls { flex-direction: column; align-items: stretch; }
+      .controls input,
+      .controls select,
+      .controls button { width: 100%; }
+      .legend { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-
-    <div class="topbar">
+  <div class="container" id="dashboardRoot">
+    <div class="card topbar">
       <div class="title">
         <h1>Projeto de Pesquisa Cidades Inteligentes - UEL</h1>
-        <h2>Observatório de Mobilidade Urbana – Londrina</h2>
-        <p>
-          Monitoramento em tempo real de congestionamentos e alertas urbanos a partir de dados do Waze.<br>
-          Painel operacional e analítico para acompanhamento de alerts, jams e trechos críticos.
-        </p>
+        <p>Observatório de Mobilidade Urbana – Londrina</p>
       </div>
 
       <div class="controls">
@@ -239,54 +313,41 @@
           <option value="300">300</option>
         </select>
 
-        <button id="reloadBtn">Atualizar</button>
+        <button id="reloadBtn">Atualizar agora</button>
       </div>
     </div>
 
-    <div class="card" style="margin-bottom:18px;">
-      <strong>Metodologia</strong><br>
-      <span class="small">
-        Os dados são coletados automaticamente a partir do Waze Partner Feed, com atualização contínua.
-        Os registros incluem alertas (incidentes reportados por usuários) e congestionamentos (jams),
-        classificados em níveis de 1 a 5 conforme critérios da plataforma.
-      </span>
+    <div class="metrics">
+      <div class="card"><p class="metric-title">Total de alerts</p><div class="metric-value" id="totalAlerts">-</div></div>
+      <div class="card"><p class="metric-title">Total de jams</p><div class="metric-value" id="totalJams">-</div></div>
+      <div class="card"><p class="metric-title">Trechos no mapa</p><div class="metric-value" id="trechosMapa">-</div></div>
+      <div class="card"><p class="metric-title">Última atualização</p><div class="metric-value" id="ultimaAtualizacao" style="font-size: 20px;">-</div></div>
     </div>
 
-    <div class="grid-cards">
-      <div class="card"><div class="label">Total de alerts</div><div class="value" id="totalAlerts">-</div></div>
-      <div class="card"><div class="label">Total de jams</div><div class="value" id="totalJams">-</div></div>
-      <div class="card"><div class="label">Trechos no mapa</div><div class="value" id="trechosMapa">-</div></div>
-      <div class="card"><div class="label">Última atualização</div><div class="value" id="ultimaAtualizacao" style="font-size:20px;">-</div></div>
+    <div class="card">
+      <span class="loading-pill" id="loadingPill">Aguardando atualização...</span>
+      <div class="status-bar" id="mapStatus">Aguardando dados...</div>
+      <div class="error-box" id="errorBox"></div>
     </div>
 
-    <div class="card" style="margin-bottom:18px; border-left:4px solid #f59e0b;">
-      <strong>Limitações dos dados</strong><br>
-      <span class="small">
-        Os dados refletem a atividade dos usuários da plataforma Waze e, portanto, representam um sistema
-        sociotécnico de participação cidadã. Dessa forma, podem não corresponder integralmente às condições
-        reais de tráfego urbano, estando sujeitos a vieses de uso, cobertura geográfica e comportamento dos usuários.
-      </span>
-    </div>
-
-    <div class="main-grid">
+    <div class="layout-main">
       <div class="card">
-        <h2 class="panel-title">Mapa de congestionamentos</h2>
+        <h2 class="section-title">Congestionamentos no mapa</h2>
+        <p class="section-subtitle">Visualização geográfica dos trechos com jam nos níveis 1 a 5.</p>
         <div id="map"></div>
-        <div style="margin-top:10px; font-size:14px;">
-          <strong>Legenda de níveis de congestionamento:</strong><br>
-          <span style="color:#2b8cbe;">●</span> Nível 1 — Trânsito leve<br>
-          <span style="color:#fdcc8a;">●</span> Nível 2 — Leve a moderado<br>
-          <span style="color:#fc8d59;">●</span> Nível 3 — Moderado<br>
-          <span style="color:#e34a33;">●</span> Nível 4 — Pesado<br>
-          <span style="color:#b30000;">●</span> Nível 5 — Congestionamento crítico
+        <div class="legend">
+          <div><span style="color:#2b8cbe;">●</span> Nível 1 — Trânsito leve</div>
+          <div><span style="color:#fdcc8a;">●</span> Nível 2 — Leve a moderado</div>
+          <div><span style="color:#fc8d59;">●</span> Nível 3 — Moderado</div>
+          <div><span style="color:#e34a33;">●</span> Nível 4 — Pesado</div>
+          <div><span style="color:#b30000;">●</span> Nível 5 — Crítico</div>
         </div>
-        <div class="status-bar" id="mapStatus">Aguardando dados...</div>
-        <div class="error-box" id="errorBox"></div>
       </div>
 
       <div class="card">
-        <h2 class="panel-title">Jams recentes</h2>
-        <div style="max-height:560px; overflow:auto;">
+        <h2 class="section-title">Congestionamentos recentes (jams)</h2>
+        <p class="section-subtitle">Últimos registros de trecho, nível, velocidade e atraso.</p>
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
@@ -302,34 +363,11 @@
       </div>
     </div>
 
-    <div class="mid-grid">
+    <div class="layout-mid">
       <div class="card">
-        <h2 class="panel-title">Ranking por extensão de congestionamentos</h2>
-        <div style="max-height:420px; overflow:auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Rua</th>
-                <th>Extensão total (m)</th>
-              </tr>
-            </thead>
-            <tbody id="rankingTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2 class="panel-title">Níveis de congestionamento ao longo do dia</h2>
-        <div class="chart-wrap">
-          <canvas id="jamLevelChart"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <div class="bottom-grid">
-      <div class="card">
-        <h2 class="panel-title">Alertas recentes</h2>
-        <div style="max-height:420px; overflow:auto;">
+        <h2 class="section-title">Alertas de trânsito</h2>
+        <p class="section-subtitle">Eventos reportados por usuários: tipo e subtipo.</p>
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
@@ -344,73 +382,66 @@
       </div>
 
       <div class="card">
-        <h2 class="panel-title">Série temporal recente de jams</h2>
-        <div class="chart-wrap">
+        <h2 class="section-title">Irregularidades (obras/interdições)</h2>
+        <p class="section-subtitle">Jams correlacionados com possíveis sinais de fechamento, construção ou bloqueio.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rua</th>
+                <th>Nível</th>
+                <th>Tipo</th>
+              </tr>
+            </thead>
+            <tbody id="closuresTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout-bottom">
+      <div class="card">
+        <h2 class="section-title">Insights operacionais</h2>
+        <p class="section-subtitle">Leitura rápida de volume, gravidade e padrões recentes.</p>
+        <div class="insights" id="insights">Carregando insights...</div>
+
+        <h3 class="section-title" style="margin-top: 16px; font-size: 16px;">Ranking de ruas com mais jams</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rua</th>
+                <th>Ocorrências</th>
+              </tr>
+            </thead>
+            <tbody id="rankingTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Distribuições temporais</h2>
+        <p class="section-subtitle">Leituras por nível, hora e dia da semana.</p>
+
+        <div class="chart-wrap" style="margin-bottom: 12px;">
+          <canvas id="jamLevelChart"></canvas>
+        </div>
+
+        <div class="chart-wrap" style="margin-bottom: 12px;">
           <canvas id="timeSeriesChart"></canvas>
         </div>
-        <div id="insights" class="small" style="margin-top:12px;">Carregando sugestões...</div>
+
+        <div class="chart-wrap">
+          <canvas id="weekdayChart"></canvas>
+        </div>
       </div>
     </div>
 
-    <div class="card">
-      <h2 class="panel-title">Jams por dia da semana (últimos dias)</h2>
-      <div class="chart-wrap">
-        <canvas id="weekdayChart"></canvas>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="label">Duração média (min)</div>
-      <div class="value" id="avgDuration">-</div>
-    </div>
-
-<div class="card">
-  <div class="label">Delay total (s)</div>
-  <div class="value" id="totalDelay">-</div>
-</div>
-
-<div class="card">
-  <div class="label">Impacto (score)</div>
-  <div class="value" id="impactScore">-</div>
-</div>
-
-<div class="card">
-  <h2 class="panel-title">Pontos mais críticos da cidade</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Rua</th>
-        <th>Nível</th>
-        <th>Duração (min)</th>
-        <th>Extensão (m)</th>
-        <th>Criticidade</th>
-      </tr>
-    </thead>
-    <tbody id="criticalTableBody"></tbody>
-  </table>
-</div>
-
-<div class="card">
-  <h2 class="panel-title">Ruas com possível obra/interdição</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Rua</th>
-        <th>Nível</th>
-        <th>Tipo</th>
-      </tr>
-    </thead>
-    <tbody id="closuresTableBody"></tbody>
-  </table>
-</div>
-
-    <div class="footer">
-      <div><strong>Projeto de Pesquisa Cidades Inteligentes - UEL</strong></div>
-      <div style="margin-top:5px;">Observatório de Mobilidade Urbana – Londrina</div>
-      <div style="margin-top:5px;">Fonte: Waze Partner Feed</div>
-      <div style="margin-top:5px;">Última atualização do painel: <span id="footerUpdateTime">-</span></div>
-    </div>
-
+    <footer class="card footer">
+      <strong>Projeto de Pesquisa Cidades Inteligentes - UEL</strong><br>
+      Observatório de Mobilidade Urbana – Londrina<br>
+      Dados coletados via Waze for Cities e disponibilizados para fins de pesquisa, monitoramento e apoio à gestão da mobilidade urbana.
+    </footer>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -462,122 +493,70 @@
       return response.json();
     }
 
+    function setLoading(isLoading, label = '') {
+      const root = document.getElementById('dashboardRoot');
+      const loadingPill = document.getElementById('loadingPill');
+      if (isLoading) {
+        root.classList.add('loading');
+        loadingPill.textContent = label || 'Carregando dados...';
+      } else {
+        root.classList.remove('loading');
+        loadingPill.textContent = label || 'Atualizado';
+      }
+    }
+
+    function setError(message) {
+      const errorBox = document.getElementById('errorBox');
+      if (!message) {
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
+        return;
+      }
+      errorBox.style.display = 'block';
+      errorBox.textContent = message;
+    }
+
     function populateAlertTypeFilter(alerts) {
       const select = document.getElementById('alertTypeFilter');
       const current = select.value;
-      const types = [...new Set(alerts.map(a => a.type).filter(Boolean))].sort();
+      const types = [...new Set((alerts || []).map(a => a.type).filter(Boolean))].sort();
       select.innerHTML = '<option value="">Todos</option>' + types.map(t => `<option value="${t}">${t}</option>`).join('');
-      select.value = current;
+      if (types.includes(current) || current === '') select.value = current;
     }
 
-function buildInsights(
-  stats,
-  recentJams,
-  recentAlerts,
-  lengthRankingRows,
-  levelData,
-  timeSeriesRows,
-  alertsByTypeRows,
-  closures,
-  criticalRows
-) {
+    function buildInsights(stats, recentJams, recentAlerts, ranking, levelData, timeSeriesRows, closures) {
+      const topJam = recentJams[0];
+      const topAlert = recentAlerts[0];
+      const topStreet = ranking[0];
+      const dominantLevel = [...levelData].sort((a, b) => Number(b.total) - Number(a.total))[0];
+      const peakHour = [...timeSeriesRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
 
-  const topJam = recentJams[0];
-  const topAlert = recentAlerts[0];
-  const topStreet = lengthRankingRows[0];
-
-  const dominantLevel = [...levelData].sort((a, b) => Number(b.total) - Number(a.total))[0];
-  const totalLevels = levelData.reduce((acc, row) => acc + Number(row.total), 0);
-  const dominantLevelShare = dominantLevel
-    ? ((Number(dominantLevel.total) / totalLevels) * 100).toFixed(1)
-    : null;
-
-  const peakHour = [...timeSeriesRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
-  const topAlertType = [...alertsByTypeRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
-
-  const insightLines = [];
-
-  insightLines.push(
-    `<p><strong>Volume acumulado:</strong> ${stats.total_alerts} alerts e ${stats.total_jams} jams.</p>`
-  );
-
-  if (dominantLevel) {
-    insightLines.push(
-      `<p><strong>Gravidade predominante:</strong> nível ${dominantLevel.level} (${dominantLevelShare}%).</p>`
-    );
-  }
-
-  if (peakHour) {
-    insightLines.push(
-      `<p><strong>Pico recente:</strong> ${peakHour.hour_bucket} (${peakHour.total} jams).</p>`
-    );
-  }
-
-  if (topStreet) {
-    insightLines.push(
-      `<p><strong>Maior extensão:</strong> ${topStreet.street} (${Number(topStreet.total_length_m).toFixed(0)} m).</p>`
-    );
-  }
-
-  if (topAlertType) {
-    insightLines.push(
-      `<p><strong>Alert dominante:</strong> ${topAlertType.type} (${topAlertType.total}).</p>`
-    );
-  }
-
-  if (topJam) {
-    insightLines.push(
-      `<p><strong>Trecho crítico recente:</strong> ${topJam.street || '-'} (nível ${topJam.level}).</p>`
-    );
-  }
-
-  if (topAlert) {
-    insightLines.push(
-      `<p><strong>Alert recente:</strong> ${topAlert.type || '-'} em ${topAlert.street || '-'}.</p>`
-    );
-  }
-
-  if (closures && closures.length > 0) {
-    insightLines.push(
-      `<p><strong>Observação:</strong> há indícios de obras/interdições influenciando o tráfego.</p>`
-    );
-  }
-
-  if (criticalRows && criticalRows.length > 0) {
-    const top = criticalRows[0];
-    insightLines.push(
-      `<p><strong>Ponto mais crítico:</strong> ${top.street} (criticidade ${top.criticidade}).</p>`
-    );
-  }
-
-  return insightLines.join('');
-}
+      const lines = [];
+      lines.push(`<p><strong>Volume:</strong> ${stats.total_alerts ?? 0} alerts e ${stats.total_jams ?? 0} jams acumulados.</p>`);
+      lines.push(`<p><strong>Rua mais recorrente:</strong> ${topStreet ? `${topStreet.street || 'via não identificada'} (${topStreet.total} ocorrências)` : 'sem dados'}.</p>`);
+      lines.push(`<p><strong>Nível dominante:</strong> ${dominantLevel ? `nível ${dominantLevel.level} (${dominantLevel.total} registros)` : 'sem dados'}.</p>`);
+      lines.push(`<p><strong>Pico por hora:</strong> ${peakHour ? `${peakHour.hour_bucket} (${peakHour.total} jams)` : 'sem dados'}.</p>`);
+      lines.push(`<p><strong>Trecho recente em destaque:</strong> ${topJam ? (topJam.street || 'via não identificada') : 'sem dados'}.</p>`);
+      lines.push(`<p><strong>Alert recente:</strong> ${topAlert ? `${topAlert.type || 'sem tipo'} em ${topAlert.street || 'via não identificada'}` : 'sem dados'}.</p>`);
+      if (closures.length > 0) {
+        lines.push('<p><strong>Irregularidades:</strong> há indícios de obras/interdições influenciando o tráfego.</p>');
+      }
+      return lines.join('');
+    }
 
     function buildJamLevelHourChart(rows) {
       const hours = Array.from({ length: 24 }, (_, i) => i);
-
-      const levels = {
-        1: Array(24).fill(0),
-        2: Array(24).fill(0),
-        3: Array(24).fill(0),
-        4: Array(24).fill(0),
-        5: Array(24).fill(0)
-      };
+      const levels = { 1: Array(24).fill(0), 2: Array(24).fill(0), 3: Array(24).fill(0), 4: Array(24).fill(0), 5: Array(24).fill(0) };
 
       rows.forEach(row => {
         const hour = Number(row.hour_of_day);
         const level = Number(row.level);
         const total = Number(row.total);
-
-        if (levels[level] && hour >= 0 && hour <= 23) {
-          levels[level][hour] = total;
-        }
+        if (levels[level] && hour >= 0 && hour <= 23) levels[level][hour] = total;
       });
 
       const ctx = document.getElementById('jamLevelChart');
-
       if (jamLevelChart) jamLevelChart.destroy();
-
       jamLevelChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -590,10 +569,7 @@ function buildInsights(
             { label: 'Nível 5', data: levels[5], tension: 0.25, fill: false }
           ]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false
-        }
+        options: { responsive: true, maintainAspectRatio: false }
       });
     }
 
@@ -603,239 +579,202 @@ function buildInsights(
 
       const ctx = document.getElementById('timeSeriesChart');
       if (timeSeriesChart) timeSeriesChart.destroy();
-
       timeSeriesChart = new Chart(ctx, {
         type: 'line',
         data: {
           labels,
-          datasets: [{
-            label: 'Jams por hora',
-            data: values,
-            tension: 0.25,
-            fill: false
-          }]
+          datasets: [{ label: 'Jams por hora', data: values, tension: 0.25, fill: false }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
     }
 
     function buildWeekdayChart(rows) {
       const weekdayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
-      const data = {
-        0: Array(24).fill(0),
-        1: Array(24).fill(0),
-        2: Array(24).fill(0),
-        3: Array(24).fill(0),
-        4: Array(24).fill(0),
-        5: Array(24).fill(0),
-        6: Array(24).fill(0)
-      };
+      const data = { 0: Array(24).fill(0), 1: Array(24).fill(0), 2: Array(24).fill(0), 3: Array(24).fill(0), 4: Array(24).fill(0), 5: Array(24).fill(0), 6: Array(24).fill(0) };
 
       rows.forEach(r => {
         const w = Number(r.weekday);
         const h = Number(r.hour);
         const total = Number(r.total);
-
-        if (data[w] && h >= 0 && h <= 23) {
-          data[w][h] += total;
-        }
+        if (data[w] && h >= 0 && h <= 23) data[w][h] += total;
       });
 
       const ctx = document.getElementById('weekdayChart');
-
       if (weekdayChart) weekdayChart.destroy();
-
       weekdayChart = new Chart(ctx, {
         type: 'line',
         data: {
           labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
-          datasets: Object.keys(data).map(w => ({
-            label: weekdayNames[w],
-            data: data[w],
-            tension: 0.25,
-            fill: false
-          }))
+          datasets: Object.keys(data).map(w => ({ label: weekdayNames[w], data: data[w], tension: 0.25, fill: false }))
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false
-        }
+        options: { responsive: true, maintainAspectRatio: false }
       });
     }
 
     async function loadDashboard() {
-  const errorBox = document.getElementById('errorBox');
-  if (errorBox) errorBox.textContent = '';
+      const apiBase = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
+      const streetFilter = document.getElementById('streetFilter').value.trim();
+      const alertTypeFilter = document.getElementById('alertTypeFilter').value;
 
-  const apiBase = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
-  const streetFilter = document.getElementById('streetFilter').value.trim();
-  const alertTypeFilter = document.getElementById('alertTypeFilter').value;
+      const statsUrl = `${apiBase}/stats`;
+      const alertsUrl = `${apiBase}/alerts?limit=50`;
+      const recentJamsUrl = streetFilter
+        ? `${apiBase}/jams/por-rua?rua=${encodeURIComponent(streetFilter)}&limit=20`
+        : `${apiBase}/jams?limit=20`;
+      const mapUrl = `${apiBase}/map/jams?limit=50`;
+      const levelUrl = `${apiBase}/analytics/jams-by-level`;
+      const rankingUrl = `${apiBase}/analytics/top-streets-jams?limit=10&sample_size=10000`;
+      const alertsByTypeUrl = `${apiBase}/analytics/alerts-by-type`;
+      const timeSeriesUrl = `${apiBase}/analytics/jams-timeseries-hourly?hours=24`;
+      const levelHourUrl = `${apiBase}/analytics/jams-by-level-hour?hours=24`;
+      const weekdayUrl = `${apiBase}/analytics/jams-by-weekday-hour?days=7`;
+      const closuresUrl = `${apiBase}/analytics/jams-with-closures?hours=24&limit=20`;
 
-  const statsUrl = `${apiBase}/stats`;
-  const alertsUrl = `${apiBase}/alerts?limit=50`;
-  const recentJamsUrl = streetFilter
-    ? `${apiBase}/jams/por-rua?rua=${encodeURIComponent(streetFilter)}&limit=20`
-    : `${apiBase}/jams?limit=20`;
-  const mapUrl = `${apiBase}/map/jams?limit=50`;
-  const levelUrl = `${apiBase}/analytics/jams-by-level`;
-  const alertsByTypeUrl = `${apiBase}/analytics/alerts-by-type`;
-  const timeSeriesUrl = `${apiBase}/analytics/jams-timeseries-hourly?hours=24`;
-  const levelHourUrl = `${apiBase}/analytics/jams-by-level-hour?hours=24`;
-  const weekdayUrl = `${apiBase}/analytics/jams-by-weekday-hour?days=7`;
-  const lengthRankingUrl = `${apiBase}/analytics/top-streets-by-length?limit=10&hours=24`;
-  const durationSummaryUrl = `${apiBase}/analytics/jam-duration-summary`;
-  const impactSummaryUrl = `${apiBase}/analytics/impact-summary`;
-  const criticalUrl = `${apiBase}/analytics/critical-jams`;
-  const closuresUrl = `${apiBase}/analytics/jams-with-closures?limit=20`;
+      try {
+        setLoading(true, 'Atualizando painel...');
+        setError('');
 
-  try {
-    const results = await Promise.allSettled([
-      getJson(statsUrl),
-      getJson(alertsUrl),
-      getJson(recentJamsUrl),
-      getJson(mapUrl),
-      getJson(levelUrl),
-      getJson(alertsByTypeUrl),
-      getJson(timeSeriesUrl),
-      getJson(levelHourUrl),
-      getJson(weekdayUrl),
-      getJson(lengthRankingUrl),
-      getJson(durationSummaryUrl),
-      getJson(impactSummaryUrl),
-      getJson(closuresUrl),
-      getJson(criticalUrl)   //
-    ]);
+        const results = await Promise.allSettled([
+          getJson(statsUrl),
+          getJson(alertsUrl),
+          getJson(recentJamsUrl),
+          getJson(mapUrl),
+          getJson(levelUrl),
+          getJson(rankingUrl),
+          getJson(alertsByTypeUrl),
+          getJson(timeSeriesUrl),
+          getJson(levelHourUrl),
+          getJson(weekdayUrl),
+          getJson(closuresUrl)
+        ]);
 
-    const stats = results[0].status === 'fulfilled' ? results[0].value : { total_alerts: '-', total_jams: '-' };
-    const alertsRaw = results[1].status === 'fulfilled' ? results[1].value : [];
-    const recentJams = results[2].status === 'fulfilled' ? results[2].value : [];
-    const geo = results[3].status === 'fulfilled' ? results[3].value : { type: 'FeatureCollection', features: [] };
-    const levelRows = results[4].status === 'fulfilled' ? results[4].value : [];
-    const alertsByTypeRows = results[5].status === 'fulfilled' ? results[5].value : [];
-    const timeSeriesRows = results[6].status === 'fulfilled' ? results[6].value : [];
-    const levelHourRows = results[7].status === 'fulfilled' ? results[7].value : [];
-    const weekdayRows = results[8].status === 'fulfilled' ? results[8].value : [];
-    const lengthRankingRows = results[9].status === 'fulfilled' ? results[9].value : [];
-    const durationSummary = results[10]?.status === 'fulfilled' ? results[10].value : {};
-    const impactSummary = results[11]?.status === 'fulfilled' ? results[11].value : {};
-    const closures = results[12]?.status === 'fulfilled' ? results[12].value : [];
-    const criticalRows = results[13]?.status === 'fulfilled' ? results[13].value : [];
+        const [
+          statsRes,
+          alertsRes,
+          jamsRes,
+          mapRes,
+          levelRes,
+          rankingRes,
+          alertsByTypeRes,
+          seriesRes,
+          levelHourRes,
+          weekdayRes,
+          closuresRes
+        ] = results;
 
-    populateAlertTypeFilter(alertsRaw);
-    const alerts = alertTypeFilter ? alertsRaw.filter(a => a.type === alertTypeFilter) : alertsRaw;
+        const stats = statsRes.status === 'fulfilled' ? statsRes.value : { total_alerts: '-', total_jams: '-' };
+        const alertsRaw = alertsRes.status === 'fulfilled' ? alertsRes.value : [];
+        const recentJams = jamsRes.status === 'fulfilled' ? jamsRes.value : [];
+        const geo = mapRes.status === 'fulfilled' ? mapRes.value : { type: 'FeatureCollection', features: [] };
+        const levelRows = levelRes.status === 'fulfilled' ? levelRes.value : [];
+        const rankingRows = rankingRes.status === 'fulfilled' ? rankingRes.value : [];
+        const alertsByTypeRows = alertsByTypeRes.status === 'fulfilled' ? alertsByTypeRes.value : [];
+        const timeSeriesRows = seriesRes.status === 'fulfilled' ? seriesRes.value : [];
+        const levelHourRows = levelHourRes.status === 'fulfilled' ? levelHourRes.value : [];
+        const weekdayRows = weekdayRes.status === 'fulfilled' ? weekdayRes.value : [];
+        const closures = closuresRes.status === 'fulfilled' ? closuresRes.value : [];
 
-    document.getElementById('totalAlerts').textContent = stats.total_alerts ?? '-';
-    document.getElementById('totalJams').textContent = stats.total_jams ?? '-';
-    document.getElementById('trechosMapa').textContent = Array.isArray(geo.features) ? geo.features.length : 0;
-    document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
-    document.getElementById('footerUpdateTime').textContent = new Date().toLocaleString('pt-BR');
-    document.getElementById('avgDuration').textContent = durationSummary.avg_duration_min ?? '-';
-    document.getElementById('totalDelay').textContent = Math.round(impactSummary.total_delay_s ?? 0);
-    document.getElementById('impactScore').textContent = Math.round(impactSummary.impact_score ?? 0);
-    document.getElementById('insights').innerHTML = buildInsights(
-  stats,
-  recentJams,
-  alerts,
-  lengthRankingRows,
-  levelRows,
-  timeSeriesRows,
-  alertsByTypeRows,
-  closures,
-  criticalRows
-);
+        const failed = results
+          .map((r, idx) => ({ r, idx }))
+          .filter(x => x.r.status === 'rejected')
+          .map(x => x.r.reason?.message || `Falha na consulta ${x.idx + 1}`);
 
-    document.getElementById('jamsTableBody').innerHTML = recentJams.map(item => `
-      <tr>
-        <td>${item.street || '-'}</td>
-        <td>${item.level ?? '-'}</td>
-        <td>${item.speed_kmh ?? '-'}</td>
-        <td>${item.delay ?? '-'}</td>
-      </tr>
-    `).join('');
+        populateAlertTypeFilter(alertsRaw);
+        const alerts = alertTypeFilter ? alertsRaw.filter(a => a.type === alertTypeFilter) : alertsRaw;
 
-    document.getElementById('alertsTableBody').innerHTML = alerts.map(item => `
-      <tr>
-        <td>${item.street || '-'}</td>
-        <td>${item.type || '-'}</td>
-        <td>${item.subtype || '-'}</td>
-      </tr>
-    `).join('');
+        document.getElementById('totalAlerts').textContent = stats.total_alerts ?? '-';
+        document.getElementById('totalJams').textContent = stats.total_jams ?? '-';
+        document.getElementById('trechosMapa').textContent = Array.isArray(geo.features) ? geo.features.length : 0;
+        document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
 
-    
+        document.getElementById('insights').innerHTML = buildInsights(
+          stats,
+          recentJams,
+          alerts,
+          rankingRows,
+          levelRows,
+          timeSeriesRows,
+          closures
+        );
 
-document.getElementById('closuresTableBody').innerHTML =
-  closures.map(c => `
-    <tr>
-      <td>${c.street}</td>
-      <td>${c.level}</td>
-      <td>${c.alert_subtype || c.alert_type}</td>
-    </tr>
-  `).join('');
+        document.getElementById('jamsTableBody').innerHTML = recentJams.map(item => `
+          <tr>
+            <td>${item.street || '-'}</td>
+            <td>${item.level ?? '-'}</td>
+            <td>${item.speed_kmh ?? item.speed ?? '-'}</td>
+            <td>${item.delay ?? '-'}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="4">Sem dados no momento.</td></tr>';
 
-    document.getElementById('rankingTableBody').innerHTML = lengthRankingRows.map(item => `
-      <tr>
-        <td>${item.street || '-'}</td>
-        <td>${Number(item.total_length_m || 0).toFixed(0)}</td>
-      </tr>
-    `).join('');
+        document.getElementById('alertsTableBody').innerHTML = alerts.map(item => `
+          <tr>
+            <td>${item.street || '-'}</td>
+            <td>${item.type || '-'}</td>
+            <td>${item.subtype || '-'}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="3">Sem dados no momento.</td></tr>';
 
-document.getElementById('criticalTableBody').innerHTML =
-  criticalRows.map(c => `
-    <tr>
-      <td>${c.street}</td>
-      <td>${c.level}</td>
-      <td>${c.duration_min}</td>
-      <td>${c.avg_length_m}</td>
-      <td><strong>${c.criticidade}</strong></td>
-    </tr>
-  `).join('');
+        document.getElementById('closuresTableBody').innerHTML = closures.map(item => `
+          <tr>
+            <td>${item.street || '-'}</td>
+            <td>${item.level ?? '-'}</td>
+            <td>${item.alert_subtype || item.alert_type || item.subtype || item.type || '-'}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="3">Nenhuma irregularidade identificada no período.</td></tr>';
 
+        document.getElementById('rankingTableBody').innerHTML = rankingRows.map(item => `
+          <tr>
+            <td>${item.street || '-'}</td>
+            <td>${item.total ?? 0}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="2">Sem dados no momento.</td></tr>';
 
-    if (levelHourRows.length) buildJamLevelHourChart(levelHourRows);
-    if (timeSeriesRows.length) buildTimeSeries(timeSeriesRows);
-    if (weekdayRows.length) buildWeekdayChart(weekdayRows);
+        if (levelHourRows.length) buildJamLevelHourChart(levelHourRows);
+        if (timeSeriesRows.length) buildTimeSeries(timeSeriesRows);
+        if (weekdayRows.length) buildWeekdayChart(weekdayRows);
 
-    if (geoLayer) map.removeLayer(geoLayer);
-    geoLayer = L.geoJSON(geo, { style, onEachFeature }).addTo(map);
-    if (geo.features && geo.features.length > 0) {
-      map.fitBounds(geoLayer.getBounds(), { padding: [20, 20] });
+        if (geoLayer) map.removeLayer(geoLayer);
+        geoLayer = L.geoJSON(geo, { style, onEachFeature }).addTo(map);
+        if (Array.isArray(geo.features) && geo.features.length > 0) {
+          map.fitBounds(geoLayer.getBounds(), { padding: [20, 20] });
+        }
+
+        const alertTypes = alertsByTypeRows.map(r => `${r.type}: ${r.total}`).join(' | ');
+        document.getElementById('mapStatus').textContent = `Mapa atualizado em ${new Date().toLocaleString('pt-BR')} | Alerts por tipo: ${alertTypes || 'sem dados'}`;
+
+        if (failed.length) {
+          setError('Algumas consultas falharam:\n' + failed.join('\n'));
+          setLoading(false, 'Atualizado com alertas');
+        } else {
+          setLoading(false, 'Atualização concluída');
+        }
+      } catch (err) {
+        document.getElementById('mapStatus').textContent = 'Erro ao carregar dashboard';
+        setError(err.message || String(err));
+        setLoading(false, 'Erro no carregamento');
+      }
     }
 
-    const alertTypes = alertsByTypeRows.map(r => `${r.type}: ${r.total}`).join(' | ');
-    document.getElementById('mapStatus').textContent =
-      `Mapa atualizado em ${new Date().toLocaleString('pt-BR')} | Alerts por tipo: ${alertTypes}`;
+    function startAutoRefresh() {
+      if (refreshHandle) clearInterval(refreshHandle);
+      const seconds = Number(document.getElementById('refreshSeconds').value || 120);
+      refreshHandle = setInterval(() => {
+        loadDashboard();
+      }, seconds * 1000);
+    }
 
-  } catch (err) {
-    console.error(err);
-    document.getElementById('mapStatus').textContent = 'Erro ao carregar dashboard';
-    if (errorBox) errorBox.textContent = err.message;
-  }
-}
+    document.getElementById('reloadBtn').addEventListener('click', () => {
+      loadDashboard();
+      startAutoRefresh();
+    });
 
-function startAutoRefresh() {
-  if (refreshHandle) clearInterval(refreshHandle);
-  const seconds = Number(document.getElementById('refreshSeconds').value || 120);
-  refreshHandle = setInterval(loadDashboard, seconds * 1000);
-}
+    document.getElementById('refreshSeconds').addEventListener('change', startAutoRefresh);
+    document.getElementById('alertTypeFilter').addEventListener('change', loadDashboard);
+    document.getElementById('streetFilter').addEventListener('change', loadDashboard);
 
-document.getElementById('reloadBtn').addEventListener('click', () => {
-  loadDashboard();
-  startAutoRefresh();
-});
-
-document.getElementById('refreshSeconds').addEventListener('change', startAutoRefresh);
-
-document.getElementById('alertTypeFilter').addEventListener('change', () => {
-  loadDashboard();
-});
-
-loadDashboard();
-startAutoRefresh();
+    loadDashboard();
+    startAutoRefresh();
   </script>
 </body>
 </html>
