@@ -211,17 +211,29 @@ def debug_latest():
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT MAX(collected_at) FROM alerts")
-    latest_alert = cur.fetchone()[0]
+    cur.execute("""
+        SELECT
+            MAX(collected_at),
+            MAX(collected_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')
+        FROM alerts
+    """)
+    latest_alert_utc, latest_alert_brt = cur.fetchone()
 
-    cur.execute("SELECT MAX(collected_at) FROM jams")
-    latest_jam = cur.fetchone()[0]
+    cur.execute("""
+        SELECT
+            MAX(collected_at),
+            MAX(collected_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')
+        FROM jams
+    """)
+    latest_jam_utc, latest_jam_brt = cur.fetchone()
 
     conn.close()
 
     return {
-        "latest_alert_collected_at": latest_alert.isoformat() if latest_alert else None,
-        "latest_jam_collected_at": latest_jam.isoformat() if latest_jam else None
+        "latest_alert_collected_at_utc": latest_alert_utc.isoformat() if latest_alert_utc else None,
+        "latest_alert_collected_at_brt": latest_alert_brt.isoformat() if latest_alert_brt else None,
+        "latest_jam_collected_at_utc": latest_jam_utc.isoformat() if latest_jam_utc else None,
+        "latest_jam_collected_at_brt": latest_jam_brt.isoformat() if latest_jam_brt else None
     }
 
 @app.get("/analytics/jams-by-level")
@@ -299,12 +311,15 @@ def jams_timeseries_hourly(hours: int = Query(24, le=168)):
 
     cur.execute("""
         SELECT
-            to_char(date_trunc('hour', collected_at), 'YYYY-MM-DD HH24:00:00') AS hour_bucket,
+            to_char(
+                date_trunc('hour', collected_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'),
+                'YYYY-MM-DD HH24:00:00'
+            ) AS hour_bucket,
             COUNT(*) AS total
         FROM jams
         WHERE collected_at >= NOW() - (%s || ' hours')::interval
-        GROUP BY date_trunc('hour', collected_at)
-        ORDER BY date_trunc('hour', collected_at)
+        GROUP BY date_trunc('hour', collected_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')
+        ORDER BY date_trunc('hour', collected_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')
     """, (hours,))
 
     rows = cur.fetchall()
@@ -318,12 +333,14 @@ def jams_by_level_hour(hours: int = Query(24, le=168)):
 
     cur.execute("""
         SELECT
-            EXTRACT(HOUR FROM collected_at) AS hour_of_day,
+            EXTRACT(HOUR FROM collected_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') AS hour_of_day,
             level,
             COUNT(*) AS total
         FROM jams
         WHERE collected_at >= NOW() - (%s || ' hours')::interval
-        GROUP BY EXTRACT(HOUR FROM collected_at), level
+        GROUP BY
+            EXTRACT(HOUR FROM collected_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'),
+            level
         ORDER BY hour_of_day, level
     """, (hours,))
 
@@ -338,13 +355,16 @@ def jams_by_weekday_hour(days: int = Query(7, le=30)):
 
     cur.execute("""
         SELECT
-            EXTRACT(DOW FROM collected_at) AS weekday,
-            EXTRACT(HOUR FROM collected_at) AS hour,
+            EXTRACT(DOW FROM collected_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') AS weekday,
+            EXTRACT(HOUR FROM collected_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') AS hour,
             level,
             COUNT(*) AS total
         FROM jams
         WHERE collected_at >= NOW() - (%s || ' days')::interval
-        GROUP BY weekday, hour, level
+        GROUP BY
+            EXTRACT(DOW FROM collected_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'),
+            EXTRACT(HOUR FROM collected_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'),
+            level
         ORDER BY weekday, hour, level
     """, (days,))
 
