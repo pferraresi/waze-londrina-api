@@ -612,6 +612,16 @@
       });
     }
 
+    function formatBrasiliaDateTime(value) {
+  if (!value) return "—";
+
+  const isoValue = value.endsWith("Z") ? value : value + "Z";
+
+  return new Date(isoValue).toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo"
+  });
+}
+
     async function loadDashboard() {
       const apiBase = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
       const streetFilter = document.getElementById('streetFilter').value.trim();
@@ -630,6 +640,7 @@
       const levelHourUrl = `${apiBase}/analytics/jams-by-level-hour?hours=24`;
       const weekdayUrl = `${apiBase}/analytics/jams-by-weekday-hour?days=7`;
       const closuresUrl = `${apiBase}/analytics/jams-with-closures?hours=24&limit=20`;
+      const latestUrl = `${apiBase}/debug/latest`;
 
       try {
         setLoading(true, 'Atualizando painel...');
@@ -646,7 +657,8 @@
           getJson(timeSeriesUrl),
           getJson(levelHourUrl),
           getJson(weekdayUrl),
-          getJson(closuresUrl)
+          getJson(closuresUrl),
+          getJson(latestUrl)
         ]);
 
         const [
@@ -674,11 +686,19 @@
         const levelHourRows = levelHourRes.status === 'fulfilled' ? levelHourRes.value : [];
         const weekdayRows = weekdayRes.status === 'fulfilled' ? weekdayRes.value : [];
         const closures = closuresRes.status === 'fulfilled' ? closuresRes.value : [];
+        const latest = results[11]?.status === "fulfilled" ? results[11].value : {};
+
+        const optionalEndpoints = [10]; // closuresUrl
 
         const failed = results
-          .map((r, idx) => ({ r, idx }))
-          .filter(x => x.r.status === 'rejected')
-          .map(x => x.r.reason?.message || `Falha na consulta ${x.idx + 1}`);
+            .map((r, idx) => ({ r, idx }))
+            .filter(x =>
+            x.r.status === 'rejected' &&
+            !optionalEndpoints.includes(x.idx)
+  )
+  .map(x =>
+    x.r.reason?.message || `Falha na consulta ${x.idx + 1}`
+  );
 
         populateAlertTypeFilter(alertsRaw);
         const alerts = alertTypeFilter ? alertsRaw.filter(a => a.type === alertTypeFilter) : alertsRaw;
@@ -686,7 +706,8 @@
         document.getElementById('totalAlerts').textContent = stats.total_alerts ?? '-';
         document.getElementById('totalJams').textContent = stats.total_jams ?? '-';
         document.getElementById('trechosMapa').textContent = Array.isArray(geo.features) ? geo.features.length : 0;
-        document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleTimeString('pt-BR');
+        const latestJamTime = formatBrasiliaDateTime(latest.latest_jam_collected_at_brt);
+        document.getElementById('ultimaAtualizacao').textContent = latestJamTime;
 
         document.getElementById('insights').innerHTML = buildInsights(
           stats,
@@ -715,13 +736,22 @@
           </tr>
         `).join('') || '<tr><td colspan="3">Sem dados no momento.</td></tr>';
 
-        document.getElementById('closuresTableBody').innerHTML = closures.map(item => `
-          <tr>
-            <td>${item.street || '-'}</td>
-            <td>${item.level ?? '-'}</td>
-            <td>${item.alert_subtype || item.alert_type || item.subtype || item.type || '-'}</td>
-          </tr>
-        `).join('') || '<tr><td colspan="3">Nenhuma irregularidade identificada no período.</td></tr>';
+        document.getElementById('closuresTableBody').innerHTML =
+  closures.length > 0
+    ? closures.map(item => `
+        <tr>
+          <td>${item.street || '-'}</td>
+          <td>${item.level ?? '-'}</td>
+          <td>${item.alert_subtype || item.alert_type || item.subtype || item.type || '-'}</td>
+        </tr>
+      `).join('')
+    : `
+      <tr>
+        <td colspan="3">
+          Nenhuma obra, interdição ou bloqueio correlacionado foi identificado no período analisado.
+        </td>
+      </tr>
+    `;
 
         document.getElementById('rankingTableBody').innerHTML = rankingRows.map(item => `
           <tr>
