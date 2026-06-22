@@ -8,23 +8,30 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg: #f3f6fb;
-      --surface: #ffffff;
-      --surface-soft: #f8fafc;
-      --text: #0f172a;
-      --muted: #64748b;
-      --border: #e2e8f0;
-      --primary: #0f766e;
-      --danger: #b91c1c;
-      --radius: 16px;
-      --shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
-    }
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --surface-soft: #f1f5f6;
+  --text: #1f2933;
+  --muted: #667085;
+  --border: #d9e2e7;
+  --uel-green: #00753B;
+  --primary: #1B2126;
+  --primary-dark: #11161a;
+  --primary-soft: #e0f2ef;
+
+  --secondary: #1f6f8b;
+  --accent: #c9a227;
+
+  --danger: #b42318;
+  --radius: 14px;
+--shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+      font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
       line-height: 1.4;
@@ -47,18 +54,28 @@
     }
 
     .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+border-top: 6px solid #00753B;}
 
     .title h1 {
-      margin: 0;
-      font-size: clamp(22px, 3vw, 30px);
-      letter-spacing: -0.02em;
-    }
+  margin: 0;
+  font-size: clamp(24px, 3vw, 34px);
+  font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: -0.02em;
+  color: var(--uel-green);
+}
+
+.section-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: -0.01em;
+  color: var(--primary-dark);
+}
 
     .title p {
       margin: 6px 0 0;
@@ -94,14 +111,16 @@
     }
 
     .controls button {
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-    }
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+}
 
-    .controls button:hover { filter: brightness(0.95); }
+.controls button:hover {
+  background: var(--primary-dark);
+}
 
     .metrics {
       display: grid;
@@ -112,6 +131,7 @@
     .metric-title {
       margin: 0;
       font-size: 13px;
+      font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: var(--muted);
     }
 
@@ -258,15 +278,28 @@
 
 
     .footer {
-      color: var(--muted);
-      font-size: 13px;
-      text-align: center;
-    }
+  background: #1B2126;
+  color: #dce3e8;
+  font-size: 13px;
+  text-align: center;
+  border: none;
+}
 
-    .footer strong {
-      color: var(--text);
-      font-weight: 700;
-    }
+.footer strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.info-icon {
+  cursor: help;
+  font-size: 12px;
+  margin-left: 4px;
+  opacity: 0.7;
+}
+
+.info-icon:hover {
+  opacity: 1;
+}
 
     @media (max-width: 1100px) {
       .metrics { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
@@ -290,8 +323,9 @@
   <div class="container" id="dashboardRoot">
     <div class="card topbar">
       <div class="title">
-        <h1>Projeto de Pesquisa Cidades Inteligentes - UEL</h1>
-        <p>Observatório de Mobilidade Urbana – Londrina</p>
+        <h1>Observatório de Mobilidade Urbana de Londrina</h1>
+        <p>Projeto de Pesquisa Cidades Inteligentes – Universidade Estadual de Londrina
+</p>
       </div>
 
       <div class="controls">
@@ -345,6 +379,26 @@
       <p class="metric-title">Jams analisados</p>
       <div class="metric-value" id="contextTotalJams">-</div>
     </div>
+
+<div class="card">
+  <p class="metric-title">Horas de atraso estrutural</p>
+  <div class="metric-value" id="structuralDelayHours">-</div>
+</div>
+
+<div class="card">
+  <p class="metric-title">Delay médio estrutural</p>
+  <div class="metric-value" id="structuralAvgDelay">-</div>
+</div>
+
+<div class="card">
+  <p class="metric-title">Índice de Impacto viário
+    <span class="info-icon"
+        title="Combina atraso, extensão e severidade dos congestionamentos estruturais. Quanto maior o valor, maior o impacto na mobilidade urbana.">
+    ℹ️
+  </span>
+  </p>
+  <div class="metric-value" id="structuralImpactScore">-</div>
+</div>
 
     <div class="card">
       <p class="metric-title">Leitura predominante</p>
@@ -700,6 +754,7 @@
       const closuresUrl = `${apiBase}/analytics/jams-with-closures?hours=24&limit=20`;
       const latestUrl = `${apiBase}/debug/latest`;
       const contextSummaryUrl = `${apiBase}/analytics/jam-context-summary?hours=24`;
+      const structuralDelayUrl = `${apiBase}/analytics/structural-delay?hours=24`;
       
 
       try {
@@ -720,7 +775,8 @@
           getJson(closuresUrl),
           getJson(latestUrl),
           getJson(cleanRankingUrl),
-          getJson(contextSummaryUrl)
+          getJson(contextSummaryUrl),
+          getJson(structuralDelayUrl)
         ]);
 
         const [
@@ -751,6 +807,7 @@
         const latest = results[11]?.status === "fulfilled" ? results[11].value : {};
         const cleanRankingRows = results[12]?.status === 'fulfilled' ? results[12].value : [];
         const contextSummary = results[13]?.status === 'fulfilled' ? results[13].value : {};
+        const structuralDelay = results[14]?.status === 'fulfilled' ? results[14].value : {};
 
         const optionalEndpoints = [10]; // closuresUrl
 
@@ -785,6 +842,22 @@ document.getElementById('contextReading').textContent =
   contextSummary.structural_pct >= contextSummary.contextual_pct
     ? 'Estrutural'
     : 'Contextual';
+
+document.getElementById('structuralDelayHours').textContent =
+  structuralDelay.delay_hours !== undefined
+    ? `${structuralDelay.delay_hours} h`
+    : '-';
+
+document.getElementById('structuralAvgDelay').textContent =
+  structuralDelay.avg_delay_minutes !== undefined
+    ? `${structuralDelay.avg_delay_minutes} min`
+    : '-';
+
+document.getElementById('structuralImpactScore').textContent =
+  structuralDelay.structural_impact_score !== undefined
+    ? `${(structuralDelay.structural_impact_score / 1000000).toFixed(1)} M`
+    : '-';
+
         document.getElementById('insights').innerHTML = buildInsights(
     stats,
     recentJams,
