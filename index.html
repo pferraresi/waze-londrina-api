@@ -317,6 +317,104 @@ border-top: 6px solid #00753B;}
       .controls button { width: 100%; }
       .legend { grid-template-columns: 1fr; }
     }
+
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+    gap: 12px;
+  }
+
+  .topbar {
+    display: block;
+  }
+
+  .title h1 {
+    font-size: 22px;
+    line-height: 1.15;
+  }
+
+  .title p {
+    font-size: 14px;
+  }
+
+  .controls {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .controls input,
+  .controls select,
+  .controls button {
+    width: 100%;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .layout-main,
+  .layout-mid,
+  .layout-bottom {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  #map {
+    height: 360px;
+  }
+
+  .chart-wrap {
+    height: 280px;
+    overflow-x: auto;
+  }
+
+  table {
+    font-size: 13px;
+  }
+
+  th,
+  td {
+    padding: 8px 6px;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  .metric-value {
+    font-size: 24px;
+  }
+
+  .footer {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 420px) {
+  .title h1 {
+    font-size: 20px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
+
+  #map {
+    height: 320px;
+  }
+
+  .chart-wrap {
+    height: 250px;
+  }
+}
+
+
   </style>
 </head>
 <body>
