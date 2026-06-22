@@ -835,3 +835,56 @@ def jam_context_summary(hours: int = Query(24, le=168)):
         result["contextual_pct"] = round((result["contextual"] / total) * 100, 1)
 
     return result
+
+@app.get("/analytics/structural-delay")
+def structural_delay(hours: int = Query(24, le=168)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            COUNT(*) AS total_structural_jams,
+            SUM(COALESCE(j.delay, 0)) AS delay_seconds,
+            AVG(COALESCE(j.delay, 0)) AS avg_delay_seconds,
+            SUM(COALESCE(j.delay, 0) * COALESCE(j.length, 0) * COALESCE(j.level, 1)) AS structural_impact_score
+        FROM jams j
+        WHERE j.collected_at >= NOW() - (%s || ' hours')::interval
+          AND j.street IS NOT NULL
+          AND j.street != ''
+          AND NOT EXISTS (
+              SELECT 1
+              FROM alerts a
+              WHERE a.street = j.street
+                AND a.collected_at BETWEEN j.collected_at - interval '30 minutes'
+                                      AND j.collected_at + interval '30 minutes'
+                AND (
+                    a.type ILIKE '%%ROAD_CLOSED%%'
+                    OR a.type ILIKE '%%CLOSED%%'
+                    OR a.type ILIKE '%%ACCIDENT%%'
+                    OR a.type ILIKE '%%HAZARD%%'
+                    OR a.subtype ILIKE '%%CONSTRUCTION%%'
+                    OR a.subtype ILIKE '%%ROAD_CLOSED%%'
+                    OR a.subtype ILIKE '%%HAZARD_ON_ROAD_CONSTRUCTION%%'
+                    OR a.report_description ILIKE '%%obra%%'
+                    OR a.report_description ILIKE '%%interdi%%'
+                )
+          )
+    """, (hours,))
+
+    row = cur.fetchone()
+    conn.close()
+
+    delay_seconds = float(row["delay_seconds"] or 0)
+    avg_delay_seconds = float(row["avg_delay_seconds"] or 0)
+    impact_score = float(row["structural_impact_score"] or 0)
+
+    return {
+        "hours": hours,
+        "total_structural_jams": int(row["total_structural_jams"] or 0),
+        "delay_seconds": round(delay_seconds, 1),
+        "delay_minutes": round(delay_seconds / 60, 1),
+        "delay_hours": round(delay_seconds / 3600, 1),
+        "avg_delay_seconds": round(avg_delay_seconds, 1),
+        "avg_delay_minutes": round(avg_delay_seconds / 60, 1),
+        "structural_impact_score": round(impact_score, 0)
+    }
