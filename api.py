@@ -11,8 +11,12 @@ app = FastAPI(title="API Waze Londrina")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[
+        "https://pferraresi.github.io",
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+    ],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -679,3 +683,85 @@ def critical_jams(hours: int = Query(24, le=168), limit: int = Query(20, le=100)
     results.sort(key=lambda x: x["criticidade"], reverse=True)
 
     return results[:limit]
+
+@app.get("/analytics/top-streets-jams-clean")
+def top_streets_jams_clean(limit: int = Query(10, le=100), hours: int = Query(24, le=168)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            j.street,
+            COUNT(*) AS total
+        FROM jams j
+        WHERE j.collected_at >= NOW() - (%s || ' hours')::interval
+          AND j.street IS NOT NULL
+          AND j.street != ''
+          AND NOT EXISTS (
+              SELECT 1
+              FROM alerts a
+              WHERE a.street = j.street
+                AND a.collected_at BETWEEN j.collected_at - interval '30 minutes'
+                                      AND j.collected_at + interval '30 minutes'
+                AND (
+                    a.type ILIKE '%%ROAD_CLOSED%%'
+                    OR a.type ILIKE '%%CLOSED%%'
+                    OR a.subtype ILIKE '%%CONSTRUCTION%%'
+                    OR a.subtype ILIKE '%%ROAD_CLOSED%%'
+                    OR a.subtype ILIKE '%%HAZARD_ON_ROAD_CONSTRUCTION%%'
+                    OR a.report_description ILIKE '%%obra%%'
+                    OR a.report_description ILIKE '%%interdi%%'
+                )
+          )
+        GROUP BY j.street
+        ORDER BY total DESC
+        LIMIT %s
+    """, (hours, limit))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+@app.get("/analytics/top-streets-by-alert-nature")
+def top_streets_by_alert_nature(
+    nature: str = Query("ALL"),
+    hours: int = Query(24, le=168),
+    limit: int = Query(10, le=100)
+):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    if nature == "ALL":
+        cur.execute("""
+            SELECT
+                street,
+                COUNT(*) AS total
+            FROM alerts
+            WHERE collected_at >= NOW() - (%s || ' hours')::interval
+              AND street IS NOT NULL
+              AND street != ''
+            GROUP BY street
+            ORDER BY total DESC
+            LIMIT %s
+        """, (hours, limit))
+    else:
+        cur.execute("""
+            SELECT
+                street,
+                COUNT(*) AS total
+            FROM alerts
+            WHERE collected_at >= NOW() - (%s || ' hours')::interval
+              AND street IS NOT NULL
+              AND street != ''
+              AND (
+                  type ILIKE %s
+                  OR subtype ILIKE %s
+              )
+            GROUP BY street
+            ORDER BY total DESC
+            LIMIT %s
+        """, (hours, nature, nature, limit))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
