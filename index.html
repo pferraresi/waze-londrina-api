@@ -324,6 +324,35 @@
       <div class="card"><p class="metric-title">Última atualização</p><div class="metric-value" id="ultimaAtualizacao" style="font-size: 20px;">-</div></div>
     </div>
 
+<div class="card">
+  <h2 class="section-title">Análise Estrutural da Mobilidade</h2>
+  <p class="section-subtitle">
+    Classificação dos congestionamentos entre padrões estruturais da malha viária e ocorrências contextuais, como obras, interdições, acidentes ou riscos.
+  </p>
+
+  <div class="metrics">
+    <div class="card">
+      <p class="metric-title">Congestionamentos estruturais</p>
+      <div class="metric-value" id="structuralPct">-</div>
+    </div>
+
+    <div class="card">
+      <p class="metric-title">Congestionamentos contextuais</p>
+      <div class="metric-value" id="contextualPct">-</div>
+    </div>
+
+    <div class="card">
+      <p class="metric-title">Jams analisados</p>
+      <div class="metric-value" id="contextTotalJams">-</div>
+    </div>
+
+    <div class="card">
+      <p class="metric-title">Leitura predominante</p>
+      <div class="metric-value" id="contextReading" style="font-size: 20px;">-</div>
+    </div>
+  </div>
+</div>
+
     <div class="card">
       <span class="loading-pill" id="loadingPill">Aguardando atualização...</span>
       <div class="status-bar" id="mapStatus">Aguardando dados...</div>
@@ -743,7 +772,19 @@
         document.getElementById('trechosMapa').textContent = Array.isArray(geo.features) ? geo.features.length : 0;
         const latestJamTime = formatBrasiliaDateTime(latest.latest_jam_collected_at_brt);
         document.getElementById('ultimaAtualizacao').textContent = latestJamTime;
+document.getElementById('structuralPct').textContent =
+  contextSummary.structural_pct !== undefined ? `${contextSummary.structural_pct}%` : '-';
 
+document.getElementById('contextualPct').textContent =
+  contextSummary.contextual_pct !== undefined ? `${contextSummary.contextual_pct}%` : '-';
+
+document.getElementById('contextTotalJams').textContent =
+  contextSummary.total_jams ?? '-';
+
+document.getElementById('contextReading').textContent =
+  contextSummary.structural_pct >= contextSummary.contextual_pct
+    ? 'Estrutural'
+    : 'Contextual';
         document.getElementById('insights').innerHTML = buildInsights(
     stats,
     recentJams,
