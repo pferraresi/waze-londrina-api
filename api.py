@@ -765,3 +765,73 @@ def top_streets_by_alert_nature(
     rows = cur.fetchall()
     conn.close()
     return rows
+
+@app.get("/analytics/jam-context-summary")
+def jam_context_summary(hours: int = Query(24, le=168)):
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        WITH classified AS (
+            SELECT
+                j.id,
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM alerts a
+                        WHERE a.street = j.street
+                          AND a.collected_at BETWEEN j.collected_at - interval '30 minutes'
+                                                AND j.collected_at + interval '30 minutes'
+                          AND (
+                              a.type ILIKE '%%ROAD_CLOSED%%'
+                              OR a.type ILIKE '%%CLOSED%%'
+                              OR a.type ILIKE '%%ACCIDENT%%'
+                              OR a.type ILIKE '%%HAZARD%%'
+                              OR a.subtype ILIKE '%%CONSTRUCTION%%'
+                              OR a.subtype ILIKE '%%ROAD_CLOSED%%'
+                              OR a.subtype ILIKE '%%HAZARD_ON_ROAD_CONSTRUCTION%%'
+                              OR a.report_description ILIKE '%%obra%%'
+                              OR a.report_description ILIKE '%%interdi%%'
+                          )
+                    )
+                    THEN 'contextual'
+                    ELSE 'structural'
+                END AS context_type
+            FROM jams j
+            WHERE j.collected_at >= NOW() - (%s || ' hours')::interval
+              AND j.street IS NOT NULL
+              AND j.street != ''
+        )
+        SELECT
+            context_type,
+            COUNT(*) AS total
+        FROM classified
+        GROUP BY context_type
+        ORDER BY context_type
+    """, (hours,))
+
+    rows = cur.fetchall()
+    conn.close()
+
+    total = sum(int(r["total"]) for r in rows) if rows else 0
+
+    result = {
+        "hours": hours,
+        "total_jams": total,
+        "structural": 0,
+        "contextual": 0,
+        "structural_pct": 0,
+        "contextual_pct": 0
+    }
+
+    for r in rows:
+        if r["context_type"] == "structural":
+            result["structural"] = int(r["total"])
+        elif r["context_type"] == "contextual":
+            result["contextual"] = int(r["total"])
+
+    if total > 0:
+        result["structural_pct"] = round((result["structural"] / total) * 100, 1)
+        result["contextual_pct"] = round((result["contextual"] / total) * 100, 1)
+
+    return result
