@@ -524,7 +524,7 @@
       if (types.includes(current) || current === '') select.value = current;
     }
 
-    function buildInsights(stats, recentJams, recentAlerts, ranking, levelData, timeSeriesRows, closures) {
+    function buildInsights(stats, recentJams, recentAlerts, ranking, levelData, timeSeriesRows, closures, contextSummary) {
       const topJam = recentJams[0];
       const topAlert = recentAlerts[0];
       const topStreet = ranking[0];
@@ -541,6 +541,15 @@
       if (closures.length > 0) {
         lines.push('<p><strong>Irregularidades:</strong> há indícios de obras/interdições influenciando o tráfego.</p>');
       }
+
+      if (contextSummary && contextSummary.total_jams > 0) {
+    lines.push(
+        `<p><strong>Natureza dos congestionamentos:</strong>
+        ${contextSummary.structural_pct}% parecem estruturais e
+        ${contextSummary.contextual_pct}% estão associados a obras,
+        interdições, acidentes ou riscos.</p>`
+    );
+}
       return lines.join('');
     }
 
@@ -641,6 +650,8 @@
       const weekdayUrl = `${apiBase}/analytics/jams-by-weekday-hour?days=7`;
       const closuresUrl = `${apiBase}/analytics/jams-with-closures?hours=24&limit=20`;
       const latestUrl = `${apiBase}/debug/latest`;
+      const contextSummaryUrl = `${apiBase}/analytics/jam-context-summary?hours=24`;
+      
 
       try {
         setLoading(true, 'Atualizando painel...');
@@ -658,7 +669,8 @@
           getJson(levelHourUrl),
           getJson(weekdayUrl),
           getJson(closuresUrl),
-          getJson(latestUrl)
+          getJson(latestUrl),
+          getJson(contextSummaryUrl)
         ]);
 
         const [
@@ -687,6 +699,7 @@
         const weekdayRows = weekdayRes.status === 'fulfilled' ? weekdayRes.value : [];
         const closures = closuresRes.status === 'fulfilled' ? closuresRes.value : [];
         const latest = results[11]?.status === "fulfilled" ? results[11].value : {};
+        const contextSummary = results[12]?.status === 'fulfilled' ? results[12].value : {};
 
         const optionalEndpoints = [10]; // closuresUrl
 
@@ -710,14 +723,15 @@
         document.getElementById('ultimaAtualizacao').textContent = latestJamTime;
 
         document.getElementById('insights').innerHTML = buildInsights(
-          stats,
-          recentJams,
-          alerts,
-          rankingRows,
-          levelRows,
-          timeSeriesRows,
-          closures
-        );
+    stats,
+    recentJams,
+    alerts,
+    rankingRows,
+    levelRows,
+    timeSeriesRows,
+    closures,
+    contextSummary
+);
 
         document.getElementById('jamsTableBody').innerHTML = recentJams.map(item => `
           <tr>
