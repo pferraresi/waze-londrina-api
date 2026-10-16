@@ -49,3 +49,13 @@ km congestionados, trechos ativos e fração do tempo em N4/N5.
 
 `index.html?api=http://localhost:8000` aponta o dashboard para outra API;
 `&meteo=<url>` troca a fonte de chuva.
+
+## Atualizar a chuva do IAPAR
+
+A aba Chuva lê `data/chuva-iapar.json`, gerado a partir da planilha horária que o
+IAPAR envia. Quando chegar uma série nova:
+
+    python scripts/iapar_para_json.py caminho/da/planilha.xlsx
+
+Faça commit do `data/chuva-iapar.json` atualizado. O script converte o rótulo do
+IAPAR (fim da hora) para o início da hora, como na API.

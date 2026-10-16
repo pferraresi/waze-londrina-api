@@ -436,22 +436,39 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
         <div id="rain-compare"><p class="empty">Calculando…</p></div>
       </div>
       <div class="block">
-        <h3>O que a pesquisa encontrou</h3>
-        <p class="note" style="margin:0 0 6px">Análise de abril a outubro de 2026 (estação seca), Projeto Cidades Inteligentes – UEL. Resultados preliminares.</p>
+        <h3>Alagamentos e o pluviômetro</h3>
+        <p class="note" style="margin:0 0 6px">Achados da pesquisa, Projeto Cidades Inteligentes – UEL. Resultados preliminares.</p>
         <div class="finding">
-          <span class="big">Garoa piora, temporal esvazia</span>
-          <span>Em horas de garoa ou chuva fraca, a parcela de trechos em trânsito pesado sobe cerca de 17% em relação ao tempo seco. Em chuva forte (mais de 10 mm/h), o trânsito diminui: muita gente adia a saída.</span>
-          <div class="compare-bars" id="research-bars"></div>
-          <span class="note">Parcela de congestionamentos em nível 4 ou 5, por faixa de chuva. Chuva forte teve só 4 horas na amostra; leia com cautela.</span>
+          <span class="big">Os motoristas avisam quando alaga</span>
+          <span>Os alertas de alagamento enviados pelo Waze sobem junto com a chuva medida pelo pluviômetro do IAPAR, na mesma hora (correlação 0,64). Os relatos funcionam como um sensor de alagamento espalhado pela cidade.</span>
         </div>
         <div class="finding">
-          <span class="big">Alagamentos acompanham o pluviômetro</span>
-          <span>Os alertas de alagamento enviados por motoristas sobem junto com a chuva medida pelo pluviômetro do IAPAR, sem atraso (correlação 0,64). Os relatos do Waze funcionam como um sensor de alagamento espalhado pela cidade.</span>
+          <span class="big">Modelo para prever, pluviômetro para medir</span>
+          <span>A previsão desta página vem de um modelo meteorológico, que suaviza as chuvas curtas e fortes típicas de Londrina. Por isso a análise abaixo usa a chuva medida pelo IAPAR.</span>
         </div>
-        <div class="finding">
-          <span class="big">O pluviômetro local importa</span>
-          <span>O modelo meteorológico usado nesta página suaviza as chuvas curtas e fortes típicas de Londrina. Para medir o efeito da chuva com rigor, a pesquisa usa o pluviômetro do IAPAR e as estações do Cemaden.</span>
+      </div>
+    </div>
+
+    <div class="block" style="margin-top:20px" id="iapar-block">
+      <h3>Período da pesquisa: chuva medida × trânsito</h3>
+      <p class="note" style="margin:0 0 12px" id="iapar-sub">Chuva do pluviômetro do IAPAR em Londrina e trânsito do Waze, hora a hora.</p>
+      <p class="rain-sentence" style="font-size:clamp(20px,2.2vw,26px)" id="iapar-sentence"><span class="skeleton">Cruzando chuva e trânsito…</span></p>
+      <div class="grid-2">
+        <div>
+          <h3 style="font-size:16px">Trânsito pesado em relação ao tempo seco</h3>
+          <p class="note" style="margin:0 0 8px">Cada hora de chuva é comparada com horas secas no mesmo horário e no mesmo tipo de dia (útil ou fim de semana).</p>
+          <div class="compare-bars" id="iapar-bands"></div>
         </div>
+        <div>
+          <h3 style="font-size:16px">Alertas de alagamento por hora</h3>
+          <p class="note" style="margin:0 0 8px">Média de alertas de alagamento novos no Waze em cada faixa de chuva.</p>
+          <div class="compare-bars" id="iapar-floods"></div>
+        </div>
+      </div>
+      <p class="note" style="margin-top:14px">Faixas com menos de 30 horas aparecem esmaecidas: são poucas horas para conclusão. Horas sem coleta do Waze ficam de fora.</p>
+      <div class="pair-chart" style="margin-top:18px">
+        <p class="sub">Chuva por dia no período (mm, IAPAR)</p>
+        <div class="chart-box short"><canvas id="chart-iapar-daily" aria-label="Chuva diária medida pelo IAPAR"></canvas></div>
       </div>
     </div>
   </section>
@@ -984,10 +1001,78 @@ async function loadChuva() {
   }
 }
 
-function renderResearchBars() {
-  const rows = [["Seco", 26.9, 2932], ["Garoa (até 1 mm)", 30.9, 557], ["Fraca (1–5 mm)", 33.2, 206], ["Moderada (5–10 mm)", 30.7, 27], ["Forte (> 10 mm)", 13.2, 4]];
-  $("#research-bars").innerHTML = rows.map(([k, v, n]) =>
-    `<div class="cb-row"><span>${k}</span><span class="bar"><i style="width:${v / 35 * 100}%;background:${k === "Seco" ? "var(--normal)" : "var(--rain)"};${n < 30 ? "opacity:.55" : ""}"></i></span><span class="v">${nf(v)}%</span></div>`).join("");
+// Camada histórica: chuva medida pelo IAPAR × série horária da API.
+const IAPAR_URL = qs.get("iapar") || "data/chuva-iapar.json";
+const BANDS = [
+  { k: "garoa", frase: "garoa", label: "Garoa (até 1 mm)", min: 0.01, max: 1 },
+  { k: "fraca", frase: "chuva fraca", label: "Fraca (1 a 5 mm)", min: 1.01, max: 5 },
+  { k: "moderada", frase: "chuva moderada", label: "Moderada (5 a 10 mm)", min: 5.01, max: 10 },
+  { k: "forte", frase: "chuva forte", label: "Forte (mais de 10 mm)", min: 10.01, max: Infinity },
+];
+async function loadIapar() {
+  const [iap, H] = await Promise.all([fetch(IAPAR_URL).then(r => r.ok ? r.json() : Promise.reject(r.status)), get("/public/hourly?hours=4800")]);
+  // índice hora local → mm (rótulo = início da hora)
+  const mmBy = {};
+  const [y, mo, d, h] = iap.inicio.match(/\d+/g).map(Number);
+  const t0 = Date.UTC(y, mo - 1, d, h);
+  iap.mm.forEach((v, i) => {
+    const t = new Date(t0 + i * 3600e3);
+    mmBy[t.toISOString().slice(0, 13) + ":00"] = v;
+  });
+  const fim = new Date(t0 + (iap.mm.length - 1) * 3600e3).toISOString();
+  const fmt = iso => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+  $("#iapar-sub").textContent = `Chuva do pluviômetro do IAPAR (Londrina, ${nf(iap.altitude_m, 0)} m) e trânsito do Waze, hora a hora, de ${fmt(iap.inicio)} a ${fmt(fim)} de ${iap.inicio.slice(0, 4)}.`;
+
+  const holidays = new Set(["2026-01-01","2026-02-16","2026-02-17","2026-04-03","2026-04-21","2026-05-01","2026-06-04","2026-09-07","2026-10-12","2026-11-02","2026-11-15","2026-11-20","2026-12-10","2026-12-25"]);
+  const dayType = date => { const w = dowOf(date); return (w === 0 || w === 6 || holidays.has(date)) ? "fds" : "util"; };
+  const rows = H.filter(r => mmBy[r.hour] != null).map(r => ({ ...r, mm: mmBy[r.hour], h: +r.hour.slice(11, 13), dt: dayType(r.hour.slice(0, 10)) }));
+  // linha de base: horas secas no mesmo horário e tipo de dia
+  const base = {};
+  for (const r of rows) if (r.mm === 0) { const k = r.dt + r.h; (base[k] ||= { s: 0, n: 0, f: 0 }); base[k].s += r.avg_km_heavy; base[k].n++; base[k].f += r.flood_alerts; }
+  const dryFlood = rows.filter(r => r.mm === 0);
+  const res = BANDS.map(b => {
+    const wet = rows.filter(r => r.mm >= b.min && r.mm <= b.max && base[r.dt + r.h]?.n >= 5);
+    const ws = wet.reduce((a, r) => a + r.avg_km_heavy, 0), bs = wet.reduce((a, r) => { const x = base[r.dt + r.h]; return a + x.s / x.n; }, 0);
+    return { ...b, n: wet.length, diff: bs > 0 ? (ws / bs - 1) * 100 : null, flood: wet.length ? wet.reduce((a, r) => a + r.flood_alerts, 0) / wet.length : 0 };
+  });
+  const dryF = dryFlood.length ? dryFlood.reduce((a, r) => a + r.flood_alerts, 0) / dryFlood.length : 0;
+  const maxAbs = Math.max(10, ...res.filter(r => r.diff != null).map(r => Math.abs(r.diff)));
+  $("#iapar-bands").innerHTML = res.map(r => {
+    const faded = r.n < 30 ? "opacity:.5" : "";
+    if (r.diff == null) return `<div class="cb-row" style="${faded}"><span>${r.label}</span><span class="note">sem dados</span><span class="v">–</span></div>`;
+    const w = Math.abs(r.diff) / maxAbs * 50;
+    const bar = r.diff >= 0
+      ? `<i style="margin-left:50%;width:${w}%;background:var(--l4)"></i>`
+      : `<i style="margin-left:${50 - w}%;width:${w}%;background:var(--uel)"></i>`;
+    return `<div class="cb-row" style="${faded}"><span>${r.label}<br><span class="note" style="margin:0">${r.n} ${r.n === 1 ? "hora" : "horas"}</span></span><span class="bar" style="display:flex;background:linear-gradient(to right,transparent calc(50% - 1px),var(--ink-3) calc(50% - 1px),var(--ink-3) calc(50% + 1px),transparent calc(50% + 1px)),var(--rule)">${bar}</span><span class="v">${r.diff >= 0 ? "+" : "−"}${nf(Math.abs(r.diff), 0)}%</span></div>`;
+  }).join("");
+  const fmax = Math.max(dryF, ...res.map(r => r.flood), 0.01);
+  $("#iapar-floods").innerHTML = [{ label: "Sem chuva", flood: dryF, n: dryFlood.length, dry: true }, ...res].map(r =>
+    `<div class="cb-row" style="${r.n < 30 ? "opacity:.5" : ""}"><span>${r.label}</span><span class="bar"><i style="width:${r.flood / fmax * 100}%;background:${r.dry ? "var(--normal)" : "var(--rain)"}"></i></span><span class="v">${nf(r.flood, 2)}</span></div>`).join("");
+
+  // frase-resumo, só com faixas de amostra suficiente
+  const ok = res.filter(r => r.n >= 30 && r.diff != null);
+  const desc = r => `${Math.abs(r.diff) < 5 ? "praticamente igual ao" : `${nf(Math.abs(r.diff), 0)}% ${r.diff > 0 ? "acima" : "abaixo"}`}`;
+  $("#iapar-sentence").innerHTML = ok.length
+    ? ok.map((r, i) => `${i === 0 ? "Com" : "com"} <b>${r.frase}</b>, o trânsito pesado ficou <b>${desc(r)}</b> do tempo seco no mesmo horário`).join("; ") + "."
+    : "Ainda há poucas horas de chuva com coleta do Waze para comparar.";
+
+  // chuva diária
+  const daily = {};
+  Object.entries(mmBy).forEach(([k, v]) => { if (v != null) daily[k.slice(0, 10)] = (daily[k.slice(0, 10)] || 0) + v; });
+  const days = Object.keys(daily).sort();
+  draw("chart-iapar-daily", {
+    type: "bar",
+    data: { labels: days, datasets: [{ data: days.map(d => +daily[d].toFixed(1)), backgroundColor: css("--rain"), barPercentage: 1, categoryPercentage: .9 }] },
+    options: baseOpts({
+      plugins: Object.assign(baseOpts().plugins, { tooltip: Object.assign(baseOpts().plugins.tooltip, { callbacks: {
+        title: it => `${days[it[0].dataIndex].slice(8, 10)}/${days[it[0].dataIndex].slice(5, 7)}`, label: c => `${nf(c.raw)} mm no dia` } }) }),
+      scales: {
+        x: Object.assign(baseOpts().scales.x, { ticks: Object.assign(baseOpts().scales.x.ticks, { autoSkip: false, callback: (v, i) => days[i].endsWith("-01") ? `${["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][+days[i].slice(5, 7) - 1]}` : "" }) }),
+        y: Object.assign(baseOpts().scales.y, { ticks: Object.assign(baseOpts().scales.y.ticks, { maxTicksLimit: 4, callback: v => nf(v, 0) + " mm" }) }),
+      },
+    }),
+  });
 }
 
 // ------------------------------------------------------------ SOBRE
@@ -997,8 +1082,7 @@ async function loadSobre() {
 }
 
 // ------------------------------------------------------------ início
-const loaders = { agora: loadNow, quando: loadQuando, ruas: () => loadRuas(7), chuva: loadChuva, sobre: loadSobre };
-renderResearchBars();
+const loaders = { agora: loadNow, quando: loadQuando, ruas: () => loadRuas(7), chuva: () => { loadIapar().catch(e => { console.error(e); $("#iapar-sentence").textContent = "Não foi possível carregar a série do IAPAR agora."; }); return loadChuva(); }, sobre: loadSobre };
 const first = (location.hash || "#agora").slice(1);
 loaded.agora = true;
 loadNow().catch(handleErr).finally(() => { if (first !== "agora") openTab(tabs.some(t => t.getAttribute("aria-controls") === first) ? first : "agora", false); });

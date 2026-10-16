@@ -167,13 +167,13 @@ def map_now():
 
 
 @router.get("/hourly")
-def hourly(hours: int = Query(168, ge=1, le=2160)):
-    """Série horária (hora local) normalizada por snapshot. Até 90 dias.
+def hourly(hours: int = Query(168, ge=1, le=4800)):
+    """Série horária (hora local) normalizada por snapshot. Até 200 dias.
     Horas sem coleta não aparecem (lacunas ficam visíveis no gráfico)."""
     def compute():
         last = latest_snapshot()
         return query(Q.HOURLY, P(start=last - timedelta(hours=hours), end=last))
-    return cached(f"hourly:{hours}", 600 if hours > 48 else 120, compute)
+    return cached(f"hourly:{hours}", 3600 if hours > 720 else (600 if hours > 48 else 120), compute)
 
 
 @router.get("/typical-week")
