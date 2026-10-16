@@ -134,6 +134,23 @@ nav.tabs::-webkit-scrollbar { display: none; }
 }
 .tab:hover { color: var(--ink); }
 .tab[aria-selected="true"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--uel); }
+.menu-btn { display: none; }
+@media (max-width: 759px) {
+  .menu-btn {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    appearance: none; border: 0; border-top: 1px solid var(--rule); background: none;
+    font: inherit; font-size: 16px; font-weight: 600; color: var(--ink);
+    padding: 12px 0; cursor: pointer; text-align: left;
+  }
+  .menu-btn svg { width: 22px; height: 22px; flex: none; }
+  .menu-btn .chev { margin-left: auto; transition: transform .15s; }
+  .menu-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  nav.tabs { display: none; flex-direction: column; gap: 0; margin: 0; padding: 0 0 8px; }
+  nav.tabs.open { display: flex; }
+  .tab { text-align: left; padding: 12px 12px; border-bottom: 0; border-left: 3px solid transparent; border-radius: 0 8px 8px 0; }
+  .tab[aria-selected="true"] { border-left-color: var(--uel); background: var(--uel-soft); }
+}
+@media (prefers-reduced-motion: reduce) { .menu-btn .chev { transition: none; } }
 
 main.wrap { padding-top: 28px; padding-bottom: 64px; }
 section.panel[hidden] { display: none; }
@@ -157,7 +174,8 @@ h3 { font-size: 19px; margin: 0 0 4px; font-weight: 700; }
 
 /* ---------- Agora ---------- */
 .now-layout { display: grid; gap: 20px; grid-template-columns: 1fr; }
-@media (min-width: 980px) { .now-layout { grid-template-columns: minmax(340px, 5fr) 7fr; align-items: start; } }
+@media (min-width: 980px) { .now-layout { grid-template-columns: minmax(340px, 5fr) 7fr; align-items: stretch; } }
+.map-col { display: flex; flex-direction: column; min-width: 0; }
 .headline {
   font-size: clamp(28px, 3.6vw, 44px); line-height: 1.12; font-weight: 300;
   letter-spacing: -0.02em; margin: 0 0 14px;
@@ -183,8 +201,8 @@ h3 { font-size: 19px; margin: 0 0 4px; font-weight: 700; }
 .sw.line { height: 4px; width: 18px; border-radius: 2px; }
 .sw.dash { height: 0; width: 18px; border-top: 3px dashed var(--blocked); border-radius: 0; }
 
-#map { height: 520px; border-radius: var(--radius-lg); border: 1px solid var(--rule); background: var(--rule); }
-@media (max-width: 979px) { #map { height: 380px; } }
+#map { flex: 1; min-height: 480px; border-radius: var(--radius-lg); border: 1px solid var(--rule); background: var(--rule); }
+@media (max-width: 979px) { #map { flex: none; height: 380px; min-height: 0; } }
 .leaflet-container { font-family: inherit; }
 /* mapa de fundo mais apagado, para os congestionamentos se destacarem */
 .osm-tiles { filter: grayscale(.85) contrast(.9) brightness(1.04); }
@@ -194,19 +212,28 @@ h3 { font-size: 19px; margin: 0 0 4px; font-weight: 700; }
 :root[data-theme="dark"] .osm-tiles { filter: grayscale(1) invert(1) brightness(.85) contrast(.9); }
 .map-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--ink-2); margin-top: 10px; }
 .map-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.alert-dot {
-  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
-  background: var(--surface); border: 2px solid var(--ink-2); font-size: 12px; font-weight: 750; color: var(--ink);
-  box-shadow: 0 0 0 2px var(--surface);
+/* ícones de alerta (desenho: Tabler Icons, MIT; buraco e relato de congestionamento próprios) */
+.ic {
+  display: inline-grid; place-items: center; border-radius: 50%; color: #fff; flex: none;
+  width: 26px; height: 26px; box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,.28);
 }
-.alert-dot.flood { border-color: var(--rain); color: var(--rain); }
-.alert-dot.accident { border-color: var(--l4); color: var(--l4); }
-.alert-dot.closed { border-color: var(--blocked); color: var(--blocked); }
+.ic svg { width: 60%; height: 60%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.ic.big { width: 30px; height: 30px; }
+.ic.small { width: 22px; height: 22px; }
+.ic.mini { width: 20px; height: 20px; box-shadow: none; }
+.ic-cluster {
+  display: grid; place-items: center; border-radius: 50%; background: #33403a; color: #fff;
+  font-weight: 700; font-size: 13px; box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,.28); cursor: pointer;
+}
+.map-legend label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.map-legend input { width: 16px; height: 16px; accent-color: var(--uel); margin: 0; }
 
 .alert-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .alert-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
 .alert-list li:last-child { border-bottom: 0; }
 .alert-list .n { font-weight: 700; }
+.more-btn { appearance: none; border: 0; background: none; padding: 4px 0; font: inherit; font-size: 15px; color: var(--uel); font-weight: 600; cursor: pointer; }
+.more-btn:hover { text-decoration: underline; }
 .empty { color: var(--ink-3); font-size: 15px; }
 
 .chart-box { position: relative; height: 260px; }
@@ -313,7 +340,12 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
       </a>
       <span class="fresh" id="fresh" role="status"><span class="dot" aria-hidden="true"></span><span id="fresh-text">Carregando dados…</span></span>
     </div>
-    <nav class="tabs" role="tablist" aria-label="Seções">
+    <button class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="tabs-nav">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <span id="menu-label">Agora</span>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6l6 -6"/></svg>
+    </button>
+    <nav class="tabs" id="tabs-nav" role="tablist" aria-label="Seções">
       <button class="tab" role="tab" id="t-agora" aria-controls="agora" aria-selected="true">Agora</button>
       <button class="tab" role="tab" id="t-quando" aria-controls="quando" aria-selected="false">Quando sair</button>
       <button class="tab" role="tab" id="t-ruas" aria-controls="ruas" aria-selected="false">Ruas críticas</button>
@@ -344,7 +376,7 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
           <ul class="alert-list" id="alerts-now"></ul>
         </div>
       </div>
-      <div>
+      <div class="map-col">
         <div id="map" role="region" aria-label="Mapa dos congestionamentos agora"></div>
         <div class="map-legend" id="map-legend"></div>
       </div>
@@ -567,8 +599,43 @@ const ALERT_LABELS = {
   JAM_STAND_STILL_TRAFFIC: "Trânsito parado (relato)", JAM_MODERATE_TRAFFIC: "Trânsito moderado (relato)",
 };
 const alertLabel = s => ALERT_LABELS[s] || (s || "Outro").replace(/_/g, " ").toLowerCase();
-const alertClass = s => /FLOOD/.test(s) ? "flood" : /ACCIDENT/.test(s) ? "accident" : /CLOSED/.test(s) ? "closed" : "";
-const alertGlyph = s => /FLOOD/.test(s) ? "≈" : /ACCIDENT/.test(s) ? "!" : /CLOSED/.test(s) ? "×" : /POT_HOLE/.test(s) ? "○" : "•";
+const ICON_PATHS = {
+  water: '<path d="M3 7c3 -2 6 -2 9 0s6 2 9 0"/><path d="M3 17c3 -2 6 -2 9 0s6 2 9 0"/><path d="M3 12c3 -2 6 -2 9 0s6 2 9 0"/>',
+  crash: '<path d="M8 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M7 6l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0h-5m0 -6h8m-6 0v-5m2 0h-4"/><path d="M14 8v-2"/><path d="M19 12h2"/><path d="M17.5 15.5l1.5 1.5"/><path d="M17.5 8.5l1.5 -1.5"/>',
+  closed: '<path d="M4 8a1 1 0 0 1 1 -1h14a1 1 0 0 1 1 1v7a1 1 0 0 1 -1 1h-14a1 1 0 0 1 -1 -1l0 -7"/><path d="M7 16v4"/><path d="M7.5 16l9 -9"/><path d="M13.5 16l6.5 -6.5"/><path d="M4 13.5l6.5 -6.5"/><path d="M17 16v4"/><path d="M5 20h4"/><path d="M15 20h4"/><path d="M17 7v-2"/><path d="M7 7v-2"/>',
+  cone: '<path d="M4 20l16 0"/><path d="M9.4 10l5.2 0"/><path d="M7.8 15l8.4 0"/><path d="M6 20l5 -15h2l5 15"/>',
+  hole: '<path d="M4 15a8 4.5 0 1 0 16 0a8 4.5 0 1 0 -16 0"/><path d="M8 14.5c2.5 1.6 5.5 1.6 8 0"/><path d="M12 10.5v-3l1.5 -2"/><path d="M6.5 11.5l-2 -2.5"/><path d="M17.5 11.5l2 -2.5"/>',
+  car: '<path d="M5 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M15 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M5 17h-2v-6l2 -5h9l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0h-6m-6 -6h15m-6 0v-5"/>',
+  light: '<path d="M7 7a5 5 0 0 1 5 -5a5 5 0 0 1 5 5v10a5 5 0 0 1 -5 5a5 5 0 0 1 -5 -5l0 -10"/><path d="M11 7a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11 17a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>',
+  hazard: '<path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0"/><path d="M12 16h.01"/>',
+  jam: '<rect x="2" y="12" width="6" height="5" rx="1.5"/><rect x="9" y="12" width="6" height="5" rx="1.5"/><rect x="16" y="12" width="6" height="5" rx="1.5"/><path d="M6 8h12"/>',
+};
+// grupo → cor e tamanho; cada subtipo do Waze cai num ícone e num grupo
+const ICON_GROUPS = {
+  agua: { color: "#1f6fd1", size: "big", label: "Alagamento" },
+  acidente: { color: "#c62f2f", size: "big", label: "Acidente" },
+  bloqueio: { color: "#4b5563", size: "big", label: "Bloqueio ou obra" },
+  perigo: { color: "#b45309", size: "", label: "Perigo na via" },
+  buraco: { color: "#8a5a2b", size: "small", label: "Buraco" },
+  relato: { color: "#6d28d9", size: "", label: "Congestionamento relatado" },
+};
+function alertKind(s = "") {
+  if (/FLOOD/.test(s)) return ["water", "agua"];
+  if (/ACCIDENT/.test(s)) return ["crash", "acidente"];
+  if (/CONSTRUCTION|LANE_CLOSED/.test(s)) return ["cone", "bloqueio"];
+  if (/ROAD_CLOSED/.test(s)) return ["closed", "bloqueio"];
+  if (/POT_HOLE/.test(s)) return ["hole", "buraco"];
+  if (/CAR_STOPPED/.test(s)) return ["car", "perigo"];
+  if (/TRAFFIC_LIGHT/.test(s)) return ["light", "perigo"];
+  if (/^JAM/.test(s)) return ["jam", "relato"];
+  return ["hazard", "perigo"];
+}
+function iconHtml(s, sizeOverride) {
+  const [icon, group] = alertKind(s);
+  const g = ICON_GROUPS[group];
+  return `<span class="ic ${sizeOverride ?? g.size}" style="background:${g.color}"><svg viewBox="0 0 24 24" aria-hidden="true">${ICON_PATHS[icon]}</svg></span>`;
+}
+const ICON_PX = { big: 30, "": 26, small: 22, mini: 20 };
 
 // ------------------------------------------------------------ utilidades
 const $ = s => document.querySelector(s);
@@ -634,6 +701,9 @@ function openTab(id, push = true) {
     document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
   });
   if (push) history.replaceState(null, "", location.search + "#" + id);
+  const cur = tabs.find(t => t.getAttribute("aria-controls") === id);
+  if (cur) $("#menu-label").textContent = cur.textContent;
+  setMenu(false);
   if (id === "agora" && map) setTimeout(() => map.invalidateSize(), 0);
   if (!loaded[id]) { loaded[id] = true; loaders[id] && loaders[id]().catch(handleErr); }
 }
@@ -645,6 +715,13 @@ tabs.forEach((t, i) => {
     n.focus(); openTab(n.getAttribute("aria-controls"));
   });
 });
+// menu do celular: o botão abre e fecha a lista de seções
+function setMenu(open) {
+  $("#menu-btn").setAttribute("aria-expanded", open);
+  $("#tabs-nav").classList.toggle("open", open);
+}
+$("#menu-btn").addEventListener("click", () => setMenu($("#menu-btn").getAttribute("aria-expanded") !== "true"));
+document.addEventListener("keydown", e => { if (e.key === "Escape") setMenu(false); });
 function handleErr(e) {
   console.error(e);
   if (e.status === 404) banner("A API ainda não tem os endpoints públicos (/public). Publique a versão nova da API no Railway para ver os dados.");
@@ -663,10 +740,50 @@ function initMap() {
   }).addTo(map);
   jamLayer = L.layerGroup().addTo(map);
   alertLayer = L.layerGroup().addTo(map);
+  const groupIcon = { agua: "HAZARD_WEATHER_FLOOD", acidente: "ACCIDENT", bloqueio: "ROAD_CLOSED", perigo: "HAZARD", relato: "JAM" };
   $("#map-legend").innerHTML =
     LEVELS.map(l => `<span><i class="sw line" style="background:var(--l${l.n})"></i>${l.name}</span>`).join("") +
     `<span><i class="sw dash"></i>Interdição</span>` +
-    `<span><span class="alert-dot" style="width:18px;height:18px;font-size:11px">•</span>Alerta</span>`;
+    Object.entries(groupIcon).map(([g, s]) => `<span>${iconHtml(s, "mini")}${ICON_GROUPS[g].label}</span>`).join("") +
+    `<label><input type="checkbox" id="show-holes" />${iconHtml("HAZARD_ON_ROAD_POT_HOLE", "mini")}<span id="holes-label">Mostrar buracos</span></label>`;
+  $("#show-holes").addEventListener("change", drawAlerts);
+  map.on("zoomend", drawAlerts);
+}
+
+// Agrupa alertas próximos (raio em pixels) quando o mapa está afastado.
+let alertPoints = [];
+function drawAlerts() {
+  if (!alertLayer) return;
+  alertLayer.clearLayers();
+  const showHoles = $("#show-holes")?.checked;
+  const pts = alertPoints.filter(a => showHoles || alertKind(a.s)[1] !== "buraco");
+  const holes = alertPoints.filter(a => alertKind(a.s)[1] === "buraco").length;
+  const hl = $("#holes-label"); if (hl) hl.textContent = `Mostrar buracos (${holes})`;
+  const R = map.getZoom() >= 16 ? 0 : 36;
+  const clusters = [];
+  for (const a of pts) {
+    const px = map.latLngToLayerPoint([a.lat, a.lon]);
+    const c = R && clusters.find(c => c.px.distanceTo(px) < R);
+    if (c) { c.items.push(a); } else clusters.push({ px, items: [a] });
+  }
+  for (const c of clusters) {
+    if (c.items.length === 1) {
+      const a = c.items[0], size = ICON_PX[ICON_GROUPS[alertKind(a.s)[1]].size];
+      L.marker([a.lat, a.lon], {
+        icon: L.divIcon({ className: "", html: iconHtml(a.s), iconSize: [size, size], iconAnchor: [size / 2, size / 2] }),
+        keyboard: false,
+      }).bindTooltip(`<b>${esc(alertLabel(a.s))}</b><br>${esc(a.street || "")}`).addTo(alertLayer);
+    } else {
+      const n = c.items.length, size = n < 10 ? 30 : n < 50 ? 36 : 42;
+      const b = L.latLngBounds(c.items.map(a => [a.lat, a.lon]));
+      const kinds = {}; c.items.forEach(a => { const l = alertLabel(a.s); kinds[l] = (kinds[l] || 0) + 1; });
+      L.marker(b.getCenter(), {
+        icon: L.divIcon({ className: "", html: `<span class="ic-cluster" style="width:${size}px;height:${size}px">${n}</span>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2] }),
+        keyboard: false,
+      }).bindTooltip(Object.entries(kinds).sort((x, y) => y[1] - x[1]).map(([l, k]) => `${k} · ${esc(l)}`).join("<br>"))
+        .on("click", () => map.fitBounds(b.pad(0.4), { maxZoom: 17 })).addTo(alertLayer);
+    }
+  }
 }
 
 function renderMap(geo) {
@@ -688,14 +805,12 @@ function renderMap(geo) {
       `<br>${nf(p.length_m / 1000, 1)} km${p.delay_s > 0 ? ` · +${nf(p.delay_s / 60, 0)} min de atraso` : ""}`,
       { sticky: true }).addTo(jamLayer);
   }
-  for (const f of geo.features.filter(f => f.properties.kind === "alert")) {
-    const p = f.properties, [x, y] = f.geometry.coordinates;
-    L.marker([y, x], {
-      icon: L.divIcon({ className: "", html: `<span class="alert-dot ${alertClass(p.subtype || p.type)}">${alertGlyph(p.subtype || p.type)}</span>`, iconSize: [22, 22], iconAnchor: [11, 11] }),
-      keyboard: false,
-    }).bindTooltip(`<b>${esc(alertLabel(p.subtype || p.type))}</b><br>${esc(p.street || "")}`).addTo(alertLayer);
-  }
+  alertPoints = geo.features.filter(f => f.properties.kind === "alert").map(f => ({
+    s: f.properties.subtype || f.properties.type, street: f.properties.street,
+    lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1],
+  }));
   if (bounds.length && !map._fitted) { map.fitBounds(bounds, { padding: [24, 24], maxZoom: 14 }); map._fitted = true; }
+  drawAlerts();
 }
 
 function renderNow(now) {
@@ -746,9 +861,17 @@ function renderNow(now) {
     .map(([k, v]) => [alertLabel(k), v, k])
     .reduce((acc, [label, v, k]) => { const e = acc.find(a => a[0] === label); e ? e[1] += v : acc.push([label, v, k]); return acc; }, [])
     .sort((a, b) => b[1] - a[1]);
+  // mostra os 5 tipos mais frequentes; o resto fica atrás de um botão
+  const TOP = 5, expanded = $("#alerts-now").dataset.expanded === "1";
+  const shown = expanded ? entries : entries.slice(0, TOP);
   $("#alerts-now").innerHTML = entries.length
-    ? entries.map(([label, v, k]) => `<li><span><span class="alert-dot ${alertClass(k)}" style="display:inline-grid;width:20px;height:20px;font-size:11px;vertical-align:-4px;margin-right:8px">${alertGlyph(k)}</span>${esc(label)}</span><span class="n">${v}</span></li>`).join("")
+    ? shown.map(([label, v, k]) => `<li><span style="display:inline-flex;align-items:center;gap:10px">${iconHtml(k, "mini")}${esc(label)}</span><span class="n">${v}</span></li>`).join("")
+      + (entries.length > TOP ? `<li><button class="more-btn" id="alerts-more" aria-expanded="${expanded}">${expanded ? "Mostrar menos" : `Mostrar mais ${entries.length - TOP} ${entries.length - TOP === 1 ? "tipo" : "tipos"}`}</button></li>` : "")
     : `<li class="empty">Nenhum alerta ativo no momento.</li>`;
+  $("#alerts-more")?.addEventListener("click", () => {
+    $("#alerts-now").dataset.expanded = expanded ? "0" : "1";
+    renderNow(now);
+  });
   return { dow, loc };
 }
 
