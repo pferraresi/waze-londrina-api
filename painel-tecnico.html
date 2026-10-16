@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Projeto de Pesquisa Cidades Inteligentes - UEL</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --surface-soft: #f1f5f6;
+  --text: #1f2933;
+  --muted: #667085;
+  --border: #d9e2e7;
+  --uel-green: #00753B;
+  --primary: #1B2126;
+  --primary-dark: #11161a;
+  --primary-soft: #e0f2ef;
+
+  --secondary: #1f6f8b;
+  --accent: #c9a227;
+
+  --danger: #b42318;
+  --radius: 14px;
+--shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .container {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+border-top: 6px solid #00753B;}
+
+    .title h1 {
+  margin: 0;
+  font-size: clamp(24px, 3vw, 34px);
+  font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: -0.02em;
+  color: var(--uel-green);
+}
+
+.section-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: -0.01em;
+  color: var(--primary-dark);
+}
+
+    .title p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      max-width: 860px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .controls label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .controls input,
+    .controls select,
+    .controls button {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    .controls button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.controls button:hover {
+  background: var(--primary-dark);
+}
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 14px;
+    }
+
+    .metric-title {
+      margin: 0;
+      font-size: 13px;
+      font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--muted);
+    }
+
+    .metric-value {
+      margin-top: 8px;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .layout-main,
+    .layout-mid,
+    .layout-bottom {
+      display: grid;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .layout-main { grid-template-columns: 1.5fr 1fr; }
+    .layout-mid,
+    .layout-bottom { grid-template-columns: 1fr 1fr; }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .section-subtitle {
+      margin: -4px 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    #map {
+      width: 100%;
+      height: 520px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+    }
+
+    .status-bar {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .loading-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #ecfeff;
+      color: #0f766e;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .error-box {
+      margin-top: 10px;
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: var(--danger);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      display: none;
+      white-space: pre-wrap;
+    }
+
+    .table-wrap {
+      max-height: 420px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    th,
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      z-index: 1;
+    }
+
+    .chart-wrap {
+      height: 320px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
+      background: #fff;
+    }
+
+    .insights {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: 12px;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .chip {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .legend {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(180px, 1fr));
+      gap: 4px 12px;
+    }
+
+    .loading .metric-value,
+    .loading .table-wrap,
+    .loading .chart-wrap,
+    .loading .insights {
+      opacity: 0.65;
+    }
+
+
+    .footer {
+  background: #1B2126;
+  color: #dce3e8;
+  font-size: 13px;
+  text-align: center;
+  border: none;
+}
+
+.footer strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.info-icon {
+  cursor: help;
+  font-size: 12px;
+  margin-left: 4px;
+  opacity: 0.7;
+}
+
+.info-icon:hover {
+  opacity: 1;
+}
+
+    @media (max-width: 1100px) {
+      .metrics { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+      .layout-main,
+      .layout-mid,
+      .layout-bottom { grid-template-columns: 1fr; }
+      #map { height: 430px; }
+    }
+
+    @media (max-width: 640px) {
+      .metrics { grid-template-columns: 1fr; }
+      .controls { flex-direction: column; align-items: stretch; }
+      .controls input,
+      .controls select,
+      .controls button { width: 100%; }
+      .legend { grid-template-columns: 1fr; }
+    }
+
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+    gap: 12px;
+  }
+
+  .topbar {
+    display: block;
+  }
+
+  .title h1 {
+    font-size: 22px;
+    line-height: 1.15;
+  }
+
+  .title p {
+    font-size: 14px;
+  }
+
+  .controls {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .controls input,
+  .controls select,
+  .controls button {
+    width: 100%;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .layout-main,
+  .layout-mid,
+  .layout-bottom {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  #map {
+    height: 360px;
+  }
+
+  .chart-wrap {
+    height: 280px;
+    overflow-x: auto;
+  }
+
+  table {
+    font-size: 13px;
+  }
+
+  th,
+  td {
+    padding: 8px 6px;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  .metric-value {
+    font-size: 24px;
+  }
+
+  .footer {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 420px) {
+  .title h1 {
+    font-size: 20px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
+
+  #map {
+    height: 320px;
+  }
+
+  .chart-wrap {
+    height: 250px;
+  }
+}
+
+
+  </style>
+</head>
+<body>
+  <div class="container" id="dashboardRoot">
+    <div class="card topbar">
+      <div class="title">
+        <h1>Observatório de Mobilidade Urbana de Londrina</h1>
+        <p>Projeto de Pesquisa Cidades Inteligentes – Universidade Estadual de Londrina
+</p>
+      </div>
+
+      <div class="controls">
+        <label for="apiBase">API</label>
+        <input id="apiBase" size="42" value="https://web-production-b07b0.up.railway.app" />
+
+        <label for="streetFilter">Rua</label>
+        <input id="streetFilter" placeholder="Ex.: Constantino" />
+
+        <label for="alertTypeFilter">Tipo de alert</label>
+        <select id="alertTypeFilter">
+          <option value="">Todos</option>
+        </select>
+
+        <label for="refreshSeconds">Atualização (s)</label>
+        <select id="refreshSeconds">
+          <option value="60">60</option>
+          <option value="120" selected>120</option>
+          <option value="300">300</option>
+        </select>
+
+        <button id="reloadBtn">Atualizar agora</button>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="card"><p class="metric-title">Total de alerts</p><div class="metric-value" id="totalAlerts">-</div></div>
+      <div class="card"><p class="metric-title">Total de jams</p><div class="metric-value" id="totalJams">-</div></div>
+      <div class="card"><p class="metric-title">Trechos no mapa</p><div class="metric-value" id="trechosMapa">-</div></div>
+      <div class="card"><p class="metric-title">Última atualização</p><div class="metric-value" id="ultimaAtualizacao" style="font-size: 20px;">-</div></div>
+    </div>
+
+<div class="card">
+  <h2 class="section-title">Análise Estrutural da Mobilidade</h2>
+  <p class="section-subtitle">
+    Classificação dos congestionamentos entre padrões estruturais da malha viária e ocorrências contextuais, como obras, interdições, acidentes ou riscos.
+  </p>
+
+  <div class="metrics">
+    <div class="card">
+      <p class="metric-title">Congestionamentos estruturais</p>
+      <div class="metric-value" id="structuralPct">-</div>
+    </div>
+
+    <div class="card">
+      <p class="metric-title">Congestionamentos contextuais</p>
+      <div class="metric-value" id="contextualPct">-</div>
+    </div>
+
+    <div class="card">
+      <p class="metric-title">Jams analisados</p>
+      <div class="metric-value" id="contextTotalJams">-</div>
+    </div>
+
+<div class="card">
+  <p class="metric-title">Horas de atraso estrutural</p>
+  <div class="metric-value" id="structuralDelayHours">-</div>
+</div>
+
+<div class="card">
+  <p class="metric-title">Delay médio estrutural</p>
+  <div class="metric-value" id="structuralAvgDelay">-</div>
+</div>
+
+<div class="card">
+  <p class="metric-title">Índice de Impacto viário
+    <span class="info-icon"
+        title="Combina atraso, extensão e severidade dos congestionamentos estruturais. Quanto maior o valor, maior o impacto na mobilidade urbana.">
+    ℹ️
+  </span>
+  </p>
+  <div class="metric-value" id="structuralImpactScore">-</div>
+</div>
+
+    <div class="card">
+      <p class="metric-title">Leitura predominante</p>
+      <div class="metric-value" id="contextReading" style="font-size: 20px;">-</div>
+    </div>
+  </div>
+</div>
+
+    <div class="card">
+      <span class="loading-pill" id="loadingPill">Aguardando atualização...</span>
+      <div class="status-bar" id="mapStatus">Aguardando dados...</div>
+      <div class="error-box" id="errorBox"></div>
+    </div>
+
+    <div class="layout-main">
+      <div class="card">
+        <h2 class="section-title">Congestionamentos no mapa</h2>
+        <p class="section-subtitle">Visualização geográfica dos trechos com jam nos níveis 1 a 5.</p>
+        <div id="map"></div>
+        <div class="legend">
+          <div><span style="color:#2b8cbe;">●</span> Nível 1 — Trânsito leve</div>
+          <div><span style="color:#fdcc8a;">●</span> Nível 2 — Leve a moderado</div>
+          <div><span style="color:#fc8d59;">●</span> Nível 3 — Moderado</div>
+          <div><span style="color:#e34a33;">●</span> Nível 4 — Pesado</div>
+          <div><span style="color:#b30000;">●</span> Nível 5 — Crítico</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Congestionamentos recentes (jams)</h2>
+        <p class="section-subtitle">Últimos registros de trecho, nível, velocidade e atraso.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rua</th>
+                <th>Nível</th>
+                <th>Velocidade</th>
+                <th>Atraso</th>
+              </tr>
+            </thead>
+            <tbody id="jamsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout-mid">
+      <div class="card">
+        <h2 class="section-title">Alertas de trânsito</h2>
+        <p class="section-subtitle">Eventos reportados por usuários: tipo e subtipo.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rua</th>
+                <th>Tipo</th>
+                <th>Subtype</th>
+              </tr>
+            </thead>
+            <tbody id="alertsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Irregularidades (obras/interdições)</h2>
+        <p class="section-subtitle">Jams correlacionados com possíveis sinais de fechamento, construção ou bloqueio.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rua</th>
+                <th>Nível</th>
+                <th>Tipo</th>
+              </tr>
+            </thead>
+            <tbody id="closuresTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout-bottom">
+  <div class="card">
+    <h2 class="section-title">Insights operacionais</h2>
+    <p class="section-subtitle">Leitura rápida de volume, gravidade e padrões recentes.</p>
+    <div class="insights" id="insights">Carregando insights...</div>
+
+    <h3 class="section-title" style="margin-top: 16px; font-size: 16px;">Ranking de ruas com mais jams</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Rua</th>
+            <th>Ocorrências</th>
+          </tr>
+        </thead>
+        <tbody id="rankingTableBody"></tbody>
+      </table>
+    </div>
+
+    <h3 class="section-title" style="margin-top: 16px; font-size: 16px;">
+      Top 10 gargalos estruturais - últimas 24 horas
+    </h3>
+    <p class="section-subtitle">
+      Ruas com mais congestionamentos não associados a obras, interdições, acidentes ou riscos nas últimas 24 horas.
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Rua</th>
+            <th>Ocorrências</th>
+          </tr>
+        </thead>
+        <tbody id="cleanRankingTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="section-title">Distribuições temporais</h2>
+    <p class="section-subtitle">Leituras por nível, hora e dia da semana.</p>
+
+    <div class="chart-wrap" style="margin-bottom: 12px;">
+      <canvas id="jamLevelChart"></canvas>
+    </div>
+
+    <div class="chart-wrap" style="margin-bottom: 12px;">
+      <canvas id="timeSeriesChart"></canvas>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="weekdayChart"></canvas>
+    </div>
+  </div>
+</div>
+
+    <footer class="card footer">
+      <strong>Projeto de Pesquisa Cidades Inteligentes - UEL</strong><br>
+      Observatório de Mobilidade Urbana – Londrina<br>
+      Dados coletados via Waze for Cities e disponibilizados para fins de pesquisa, monitoramento e apoio à gestão da mobilidade urbana.
+    </footer>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([-23.3103, -51.1628], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    let geoLayer = null;
+    let refreshHandle = null;
+    let jamLevelChart = null;
+    let timeSeriesChart = null;
+    let weekdayChart = null;
+
+    function getColor(level) {
+      if (level >= 5) return '#b30000';
+      if (level === 4) return '#e34a33';
+      if (level === 3) return '#fc8d59';
+      if (level === 2) return '#fdcc8a';
+      return '#2b8cbe';
+    }
+
+    function style(feature) {
+      return {
+        color: getColor(feature.properties.level ?? 1),
+        weight: 7,
+        opacity: 0.95
+      };
+    }
+
+    function onEachFeature(feature, layer) {
+      const p = feature.properties || {};
+      layer.bindPopup(`
+        <strong>${p.street || 'Via desconhecida'}</strong><br>
+        <span class="chip">Nível ${p.level ?? '-'}</span><br><br>
+        Velocidade: ${p.speed ?? '-'} km/h<br>
+        Extensão: ${p.length ?? '-'} m<br>
+        Atraso: ${p.delay ?? '-'} s<br>
+        Coletado em: ${p.collected_at ?? '-'}
+      `);
+    }
+
+    async function getJson(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status} em ${url}`);
+      return response.json();
+    }
+
+    function setLoading(isLoading, label = '') {
+      const root = document.getElementById('dashboardRoot');
+      const loadingPill = document.getElementById('loadingPill');
+      if (isLoading) {
+        root.classList.add('loading');
+        loadingPill.textContent = label || 'Carregando dados...';
+      } else {
+        root.classList.remove('loading');
+        loadingPill.textContent = label || 'Atualizado';
+      }
+    }
+
+    function setError(message) {
+      const errorBox = document.getElementById('errorBox');
+      if (!message) {
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
+        return;
+      }
+      errorBox.style.display = 'block';
+      errorBox.textContent = message;
+    }
+
+    function populateAlertTypeFilter(alerts) {
+      const select = document.getElementById('alertTypeFilter');
+      const current = select.value;
+      const types = [...new Set((alerts || []).map(a => a.type).filter(Boolean))].sort();
+      select.innerHTML = '<option value="">Todos</option>' + types.map(t => `<option value="${t}">${t}</option>`).join('');
+      if (types.includes(current) || current === '') select.value = current;
+    }
+
+    function buildInsights(stats, recentJams, recentAlerts, ranking, levelData, timeSeriesRows, closures, contextSummary) {
+      const topJam = recentJams[0];
+      const topAlert = recentAlerts[0];
+      const topStreet = ranking[0];
+      const dominantLevel = [...levelData].sort((a, b) => Number(b.total) - Number(a.total))[0];
+      const peakHour = [...timeSeriesRows].sort((a, b) => Number(b.total) - Number(a.total))[0];
+
+      const lines = [];
+      lines.push(`<p><strong>Volume:</strong> ${stats.total_alerts ?? 0} alerts e ${stats.total_jams ?? 0} jams acumulados.</p>`);
+      lines.push(`<p><strong>Rua mais recorrente:</strong> ${topStreet ? `${topStreet.street || 'via não identificada'} (${topStreet.total} ocorrências)` : 'sem dados'}.</p>`);
+      lines.push(`<p><strong>Nível dominante:</strong> ${dominantLevel ? `nível ${dominantLevel.level} (${dominantLevel.total} registros)` : 'sem dados'}.</p>`);
+      lines.push(`<p><strong>Pico por hora:</strong> ${peakHour ? `${peakHour.hour_bucket} (${peakHour.total} jams)` : 'sem dados'}.</p>`);
+      lines.push(`<p><strong>Trecho recente em destaque:</strong> ${topJam ? (topJam.street || 'via não identificada') : 'sem dados'}.</p>`);
+      lines.push(`<p><strong>Alert recente:</strong> ${topAlert ? `${topAlert.type || 'sem tipo'} em ${topAlert.street || 'via não identificada'}` : 'sem dados'}.</p>`);
+      if (closures.length > 0) {
+        lines.push('<p><strong>Irregularidades:</strong> há indícios de obras/interdições influenciando o tráfego.</p>');
+      }
+
+      if (contextSummary && contextSummary.total_jams > 0) {
+    lines.push(
+        `<p><strong>Natureza dos congestionamentos:</strong>
+        ${contextSummary.structural_pct}% parecem estruturais e
+        ${contextSummary.contextual_pct}% estão associados a obras,
+        interdições, acidentes ou riscos.</p>`
+    );
+}
+      return lines.join('');
+    }
+
+    function buildJamLevelHourChart(rows) {
+      const hours = Array.from({ length: 24 }, (_, i) => i);
+      const levels = { 1: Array(24).fill(0), 2: Array(24).fill(0), 3: Array(24).fill(0), 4: Array(24).fill(0), 5: Array(24).fill(0) };
+
+      rows.forEach(row => {
+        const hour = Number(row.hour_of_day);
+        const level = Number(row.level);
+        const total = Number(row.total);
+        if (levels[level] && hour >= 0 && hour <= 23) levels[level][hour] = total;
+      });
+
+      const ctx = document.getElementById('jamLevelChart');
+      if (jamLevelChart) jamLevelChart.destroy();
+      jamLevelChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: hours.map(h => `${String(h).padStart(2, '0')}:00`),
+          datasets: [
+            { label: 'Nível 1', data: levels[1], tension: 0.25, fill: false },
+            { label: 'Nível 2', data: levels[2], tension: 0.25, fill: false },
+            { label: 'Nível 3', data: levels[3], tension: 0.25, fill: false },
+            { label: 'Nível 4', data: levels[4], tension: 0.25, fill: false },
+            { label: 'Nível 5', data: levels[5], tension: 0.25, fill: false }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function buildTimeSeries(seriesRows) {
+      const labels = seriesRows.map(r => r.hour_bucket);
+      const values = seriesRows.map(r => Number(r.total));
+
+      const ctx = document.getElementById('timeSeriesChart');
+      if (timeSeriesChart) timeSeriesChart.destroy();
+      timeSeriesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{ label: 'Jams por hora', data: values, tension: 0.25, fill: false }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+
+    function buildWeekdayChart(rows) {
+      const weekdayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      const data = { 0: Array(24).fill(0), 1: Array(24).fill(0), 2: Array(24).fill(0), 3: Array(24).fill(0), 4: Array(24).fill(0), 5: Array(24).fill(0), 6: Array(24).fill(0) };
+
+      rows.forEach(r => {
+        const w = Number(r.weekday);
+        const h = Number(r.hour);
+        const total = Number(r.total);
+        if (data[w] && h >= 0 && h <= 23) data[w][h] += total;
+      });
+
+      const ctx = document.getElementById('weekdayChart');
+      if (weekdayChart) weekdayChart.destroy();
+      weekdayChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+          datasets: Object.keys(data).map(w => ({ label: weekdayNames[w], data: data[w], tension: 0.25, fill: false }))
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function formatBrasiliaDateTime(value) {
+  if (!value) return "—";
+
+  const isoValue = value.endsWith("Z") ? value : value + "Z";
+
+  return new Date(isoValue).toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo"
+  });
+}
+
+    async function loadDashboard() {
+      const apiBase = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
+      const streetFilter = document.getElementById('streetFilter').value.trim();
+      const alertTypeFilter = document.getElementById('alertTypeFilter').value;
+
+      const statsUrl = `${apiBase}/stats`;
+      const alertsUrl = `${apiBase}/alerts?limit=50`;
+      const recentJamsUrl = streetFilter
+        ? `${apiBase}/jams/por-rua?rua=${encodeURIComponent(streetFilter)}&limit=20`
+        : `${apiBase}/jams?limit=20`;
+      const mapUrl = `${apiBase}/map/jams?limit=50`;
+      const levelUrl = `${apiBase}/analytics/jams-by-level`;
+      const rankingUrl = `${apiBase}/analytics/top-streets-jams?limit=10&sample_size=10000`;
+      const cleanRankingUrl = `${apiBase}/analytics/top-streets-jams-clean?hours=24&limit=10`;
+      const alertsByTypeUrl = `${apiBase}/analytics/alerts-by-type`;
+      const timeSeriesUrl = `${apiBase}/analytics/jams-timeseries-hourly?hours=24`;
+      const levelHourUrl = `${apiBase}/analytics/jams-by-level-hour?hours=24`;
+      const weekdayUrl = `${apiBase}/analytics/jams-by-weekday-hour?days=7`;
+      const closuresUrl = `${apiBase}/analytics/jams-with-closures?hours=24&limit=20`;
+      const latestUrl = `${apiBase}/debug/latest`;
+      const contextSummaryUrl = `${apiBase}/analytics/jam-context-summary?hours=24`;
+      const structuralDelayUrl = `${apiBase}/analytics/structural-delay?hours=24`;
+      
+
+      try {
+        setLoading(true, 'Atualizando painel...');
+        setError('');
+
+        const results = await Promise.allSettled([
+          getJson(statsUrl),
+          getJson(alertsUrl),
+          getJson(recentJamsUrl),
+          getJson(mapUrl),
+          getJson(levelUrl),
+          getJson(rankingUrl),
+          getJson(alertsByTypeUrl),
+          getJson(timeSeriesUrl),
+          getJson(levelHourUrl),
+          getJson(weekdayUrl),
+          getJson(closuresUrl),
+          getJson(latestUrl),
+          getJson(cleanRankingUrl),
+          getJson(contextSummaryUrl),
+          getJson(structuralDelayUrl)
+        ]);
+
+        const [
+          statsRes,
+          alertsRes,
+          jamsRes,
+          mapRes,
+          levelRes,
+          rankingRes,
+          alertsByTypeRes,
+          seriesRes,
+          levelHourRes,
+          weekdayRes,
+          closuresRes
+        ] = results;
+
+        const stats = statsRes.status === 'fulfilled' ? statsRes.value : { total_alerts: '-', total_jams: '-' };
+        const alertsRaw = alertsRes.status === 'fulfilled' ? alertsRes.value : [];
+        const recentJams = jamsRes.status === 'fulfilled' ? jamsRes.value : [];
+        const geo = mapRes.status === 'fulfilled' ? mapRes.value : { type: 'FeatureCollection', features: [] };
+        const levelRows = levelRes.status === 'fulfilled' ? levelRes.value : [];
+        const rankingRows = rankingRes.status === 'fulfilled' ? rankingRes.value : [];
+        const alertsByTypeRows = alertsByTypeRes.status === 'fulfilled' ? alertsByTypeRes.value : [];
+        const timeSeriesRows = seriesRes.status === 'fulfilled' ? seriesRes.value : [];
+        const levelHourRows = levelHourRes.status === 'fulfilled' ? levelHourRes.value : [];
+        const weekdayRows = weekdayRes.status === 'fulfilled' ? weekdayRes.value : [];
+        const closures = closuresRes.status === 'fulfilled' ? closuresRes.value : [];
+        const latest = results[11]?.status === "fulfilled" ? results[11].value : {};
+        const cleanRankingRows = results[12]?.status === 'fulfilled' ? results[12].value : [];
+        const contextSummary = results[13]?.status === 'fulfilled' ? results[13].value : {};
+        const structuralDelay = results[14]?.status === 'fulfilled' ? results[14].value : {};
+
+        const optionalEndpoints = [10]; // closuresUrl
+
+        const failed = results
+            .map((r, idx) => ({ r, idx }))
+            .filter(x =>
+            x.r.status === 'rejected' &&
+            !optionalEndpoints.includes(x.idx)
+  )
+  .map(x =>
+    x.r.reason?.message || `Falha na consulta ${x.idx + 1}`
+  );
+
+        populateAlertTypeFilter(alertsRaw);
+        const alerts = alertTypeFilter ? alertsRaw.filter(a => a.type === alertTypeFilter) : alertsRaw;
+
+        document.getElementById('totalAlerts').textContent = stats.total_alerts ?? '-';
+        document.getElementById('totalJams').textContent = stats.total_jams ?? '-';
+        document.getElementById('trechosMapa').textContent = Array.isArray(geo.features) ? geo.features.length : 0;
+        const latestJamTime = formatBrasiliaDateTime(latest.latest_jam_collected_at_brt);
+        document.getElementById('ultimaAtualizacao').textContent = latestJamTime;
+document.getElementById('structuralPct').textContent =
+  contextSummary.structural_pct !== undefined ? `${contextSummary.structural_pct}%` : '-';
+
+document.getElementById('contextualPct').textContent =
+  contextSummary.contextual_pct !== undefined ? `${contextSummary.contextual_pct}%` : '-';
+
+document.getElementById('contextTotalJams').textContent =
+  contextSummary.total_jams ?? '-';
+
+document.getElementById('contextReading').textContent =
+  contextSummary.structural_pct >= contextSummary.contextual_pct
+    ? 'Estrutural'
+    : 'Contextual';
+
+document.getElementById('structuralDelayHours').textContent =
+  structuralDelay.delay_hours !== undefined
+    ? `${structuralDelay.delay_hours} h`
+    : '-';
+
+document.getElementById('structuralAvgDelay').textContent =
+  structuralDelay.avg_delay_minutes !== undefined
+    ? `${structuralDelay.avg_delay_minutes} min`
+    : '-';
+
+document.getElementById('structuralImpactScore').textContent =
+  structuralDelay.structural_impact_score !== undefined
+    ? `${(structuralDelay.structural_impact_score / 1000000).toFixed(1)} M`
+    : '-';
+
+        document.getElementById('insights').innerHTML = buildInsights(
+    stats,
+    recentJams,
+    alerts,
+    rankingRows,
+    levelRows,
+    timeSeriesRows,
+    closures,
+    contextSummary
+);
+
+        document.getElementById('jamsTableBody').innerHTML = recentJams.map(item => `
+          <tr>
+            <td>${item.street || '-'}</td>
+            <td>${item.level ?? '-'}</td>
+            <td>${item.speed_kmh ?? item.speed ?? '-'}</td>
+            <td>${item.delay ?? '-'}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="4">Sem dados no momento.</td></tr>';
+
+        document.getElementById('alertsTableBody').innerHTML = alerts.map(item => `
+          <tr>
+            <td>${item.street || '-'}</td>
+            <td>${item.type || '-'}</td>
+            <td>${item.subtype || '-'}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="3">Sem dados no momento.</td></tr>';
+
+        document.getElementById('closuresTableBody').innerHTML =
+  closures.length > 0
+    ? closures.map(item => `
+        <tr>
+          <td>${item.street || '-'}</td>
+          <td>${item.level ?? '-'}</td>
+          <td>${item.alert_subtype || item.alert_type || item.subtype || item.type || '-'}</td>
+        </tr>
+      `).join('')
+    : `
+      <tr>
+        <td colspan="3">
+          Nenhuma obra, interdição ou bloqueio correlacionado foi identificado no período analisado.
+        </td>
+      </tr>
+    `;
+
+        document.getElementById('rankingTableBody').innerHTML = rankingRows.map(item => `
+          <tr>
+            <td>${item.street || '-'}</td>
+            <td>${item.total ?? 0}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="2">Sem dados no momento.</td></tr>';
+
+        document.getElementById('cleanRankingTableBody').innerHTML = cleanRankingRows.map(item => `
+  <tr>
+    <td>${item.street || '-'}</td>
+    <td>${item.total ?? 0}</td>
+  </tr>
+`).join('') || '<tr><td colspan="2">Sem dados no momento.</td></tr>';
+
+        if (levelHourRows.length) buildJamLevelHourChart(levelHourRows);
+        if (timeSeriesRows.length) buildTimeSeries(timeSeriesRows);
+        if (weekdayRows.length) buildWeekdayChart(weekdayRows);
+
+        if (geoLayer) map.removeLayer(geoLayer);
+        geoLayer = L.geoJSON(geo, { style, onEachFeature }).addTo(map);
+        if (Array.isArray(geo.features) && geo.features.length > 0) {
+          map.fitBounds(geoLayer.getBounds(), { padding: [20, 20] });
+        }
+
+        const alertTypes = alertsByTypeRows.map(r => `${r.type}: ${r.total}`).join(' | ');
+        document.getElementById('mapStatus').textContent = `Mapa atualizado em ${new Date().toLocaleString('pt-BR')} | Alerts por tipo: ${alertTypes || 'sem dados'}`;
+
+        if (failed.length) {
+          setError('Algumas consultas falharam:\n' + failed.join('\n'));
+          setLoading(false, 'Atualizado com alertas');
+        } else {
+          setLoading(false, 'Atualização concluída');
+        }
+      } catch (err) {
+        document.getElementById('mapStatus').textContent = 'Erro ao carregar dashboard';
+        setError(err.message || String(err));
+        setLoading(false, 'Erro no carregamento');
+      }
+    }
+
+    function startAutoRefresh() {
+      if (refreshHandle) clearInterval(refreshHandle);
+      const seconds = Number(document.getElementById('refreshSeconds').value || 120);
+      refreshHandle = setInterval(() => {
+        loadDashboard();
+      }, seconds * 1000);
+    }
+
+    document.getElementById('reloadBtn').addEventListener('click', () => {
+      loadDashboard();
+      startAutoRefresh();
+    });
+
+    document.getElementById('refreshSeconds').addEventListener('change', startAutoRefresh);
+    document.getElementById('alertTypeFilter').addEventListener('change', loadDashboard);
+    document.getElementById('streetFilter').addEventListener('change', loadDashboard);
+
+    loadDashboard();
+    startAutoRefresh();
+  </script>
+</body>
+</html>
