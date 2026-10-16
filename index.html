@@ -180,6 +180,12 @@ h3 { font-size: 19px; margin: 0 0 4px; font-weight: 700; }
 #map { height: 520px; border-radius: var(--radius-lg); border: 1px solid var(--rule); background: var(--rule); }
 @media (max-width: 979px) { #map { height: 380px; } }
 .leaflet-container { font-family: inherit; }
+/* mapa de fundo mais apagado, para os congestionamentos se destacarem */
+.osm-tiles { filter: grayscale(.85) contrast(.9) brightness(1.04); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .osm-tiles { filter: grayscale(1) invert(1) brightness(.85) contrast(.9); }
+}
+:root[data-theme="dark"] .osm-tiles { filter: grayscale(1) invert(1) brightness(.85) contrast(.9); }
 .map-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--ink-2); margin-top: 10px; }
 .map-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .alert-dot {
@@ -495,7 +501,7 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
 <footer class="site">
   <div class="wrap">
     <span>Observatório da Mobilidade Urbana de Londrina · Projeto Cidades Inteligentes – UEL</span>
-    <span>Dados: Waze for Cities · Chuva: Open-Meteo · Mapa: © OpenStreetMap, © CARTO</span>
+    <span>Dados: Waze for Cities · Chuva: Open-Meteo · Mapa: © OpenStreetMap</span>
   </div>
 </footer>
 
@@ -626,10 +632,11 @@ function handleErr(e) {
 let map, jamLayer, alertLayer, tiles;
 function initMap() {
   map = L.map("map", { zoomControl: true, attributionControl: true }).setView([-23.31, -51.165], 13);
-  const dark = matchMedia("(prefers-color-scheme: dark)").matches && document.documentElement.dataset.theme !== "light";
-  tiles = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark ? "dark_all" : "light_all"}/{z}/{x}/{y}{r}.png`, {
-    maxZoom: 19, subdomains: "abcd",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  // Mapa de fundo do OpenStreetMap: gratuito, sem chave de API (mesmo da versão 1).
+  tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    className: "osm-tiles",
   }).addTo(map);
   jamLayer = L.layerGroup().addTo(map);
   alertLayer = L.layerGroup().addTo(map);
