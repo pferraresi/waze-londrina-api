@@ -22,6 +22,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Endpoints públicos (dashboard da comunidade) — ver public_api.py
+from public_api import router as public_router, ensure_indexes
+app.include_router(public_router)
+
+
+@app.on_event("startup")
+def _startup_indexes():
+    ensure_indexes()
+
 def get_connection():
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
