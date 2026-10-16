@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Trânsito em Londrina · Observatório da Mobilidade Urbana</title>
-<meta name="description" content="Como está o trânsito de Londrina agora, quando sair, ruas mais congestionadas e efeito da chuva. Projeto de pesquisa Cidades Inteligentes – UEL, com dados do Waze for Cities." />
+<meta name="description" content="Como está o trânsito de Londrina agora, quando sair, ruas mais congestionadas e efeito da chuva. Projeto de pesquisa Governança em Cidades Inteligentes – UEL, com dados do Waze for Cities." />
 <link rel="alternate" hreflang="pt-BR" href="https://pferraresi.github.io/waze-londrina-api/" />
 <link rel="alternate" hreflang="en" href="https://pferraresi.github.io/waze-londrina-api/?lang=en" />
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
@@ -100,6 +100,10 @@ a { color: var(--uel); }
 header.site {
   border-bottom: 1px solid var(--rule);
   background: var(--surface);
+}
+@media (min-width: 760px) {
+  header.site { position: sticky; top: 0; z-index: 1100; }
+  header.site .site-row { padding: 10px 0; }
 }
 .site-row {
   display: flex; align-items: center; justify-content: space-between;
@@ -329,8 +333,25 @@ dl.gloss dt { font-weight: 700; }
 dl.gloss dd { margin: 0; color: var(--ink-2); }
 @media (max-width: 600px) { dl.gloss { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
 
-footer.site { border-top: 1px solid var(--rule); padding: 24px 0 40px; font-size: 14px; color: var(--ink-3); }
-footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+/* rodapé: verde UEL bem escuro, igual nos dois temas */
+footer.site {
+  --foot-bg: #0e3b25; --foot-ink: #eef5f0; --foot-muted: #a8c4b3; --foot-rule: #2a5a41; --foot-link: #bfe8cf;
+  background: var(--foot-bg); color: var(--foot-ink); font-size: 15px; line-height: 1.5;
+  padding-top: 40px; padding-bottom: max(28px, env(safe-area-inset-bottom, 0px));
+}
+footer.site p { margin: 0 0 4px; }
+footer.site a { color: var(--foot-link); text-underline-offset: 3px; }
+footer.site a:hover { color: #ffffff; }
+footer.site :focus-visible { outline-color: var(--foot-link); }
+.foot-grid { display: grid; gap: 28px 40px; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .foot-grid { grid-template-columns: 1.1fr 1fr 1fr; } }
+.foot-brand { display: flex; gap: 14px; align-items: flex-start; }
+.foot-brand svg { flex: none; }
+.foot-title { font-weight: 750; font-size: 18px; }
+.foot-h { font-size: 13px; font-weight: 600; letter-spacing: .04em; color: var(--foot-muted); margin: 0 0 10px; }
+.foot-strong { font-weight: 700; }
+.foot-muted { color: var(--foot-muted); font-size: 14px; max-width: 34ch; }
+.foot-base { border-top: 1px solid var(--foot-rule); margin-top: 32px; padding-top: 16px; font-size: 13px; color: var(--foot-muted); }
 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .skeleton { color: var(--ink-3); }
@@ -491,7 +512,7 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
       </div>
       <div class="block">
         <h3>Alagamentos e o pluviômetro</h3>
-        <p class="note" style="margin:0 0 6px">Achados da pesquisa, Projeto Cidades Inteligentes – UEL. Resultados preliminares.</p>
+        <p class="note" style="margin:0 0 6px">Achados da pesquisa, projeto Governança em Cidades Inteligentes – UEL. Resultados preliminares.</p>
         <div class="finding">
           <span class="big">Os motoristas avisam quando alaga</span>
           <span>Os alertas de alagamento enviados pelo Waze sobem junto com a chuva medida pelo pluviômetro do IAPAR, na mesma hora (correlação 0,64). Os relatos funcionam como um sensor de alagamento espalhado pela cidade.</span>
@@ -531,7 +552,7 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
   <section class="panel" id="sobre" role="tabpanel" aria-labelledby="t-sobre" hidden>
     <div class="prose">
       <h2>Sobre os dados</h2>
-      <p>Este painel é parte do projeto de pesquisa Cidades Inteligentes da Universidade Estadual de Londrina. Os dados vêm do programa <a href="https://www.waze.com/wazeforcities/" rel="noopener">Waze for Cities</a>, que compartilha com a cidade os congestionamentos detectados pelo aplicativo e os alertas enviados por motoristas.</p>
+      <p>Este painel é parte do projeto de pesquisa Governança em Cidades Inteligentes (nº 14408, PROPPG-UEL), da Universidade Estadual de Londrina. Os dados vêm do programa <a href="https://www.waze.com/wazeforcities/" rel="noopener">Waze for Cities</a>, que compartilha com a cidade os congestionamentos detectados pelo aplicativo e os alertas enviados por motoristas.</p>
 
       <h3>Como os números são calculados</h3>
       <p>A cada dois minutos registramos uma "fotografia" do trânsito da cidade. Um mesmo congestionamento aparece em várias fotografias seguidas, então nunca somamos fotografias: usamos médias.</p>
@@ -564,16 +585,38 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
 
       <h3>Para pesquisadores</h3>
       <p>Os dados agregados estão disponíveis na <a id="api-link" href="#" rel="noopener">API pública</a> (endpoints <code>/public/*</code>). A <a href="v1/">versão 1 do painel</a> continua no ar, sem alterações, para comparação.</p>
-      <p>Contato: Projeto de Pesquisa Cidades Inteligentes, Universidade Estadual de Londrina.</p>
+      <p>Contato: Prof. Dr. Paulo Marcelo Ferrarese Pegino, <a href="mailto:paulo.pegino@uel.br">paulo.pegino@uel.br</a>.</p>
     </div>
   </section>
 </main>
 
-<footer class="site">
-  <div class="wrap">
-    <span>Observatório da Mobilidade Urbana de Londrina · Projeto Cidades Inteligentes – UEL</span>
-    <span>Dados: Waze for Cities · Chuva: Open-Meteo, IAPAR · Mapa: © OpenStreetMap</span>
+<footer class="site" aria-label="Rodapé">
+  <div class="wrap foot-grid">
+    <div class="foot-brand">
+      <svg viewBox="0 0 96 96" width="44" height="44" aria-hidden="true"><rect width="96" height="96" rx="24" fill="#ffffff"/><path d="M14 62h18l8-26 12 40 9-28 5 14h16" fill="none" stroke="#0e3b25" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div>
+        <p class="foot-title">Trânsito em Londrina</p>
+        <p>Observatório da Mobilidade Urbana</p>
+        <p class="foot-muted">Painel público com dados do Waze for Cities, atualizados a cada dois minutos.</p>
+      </div>
+    </div>
+    <div>
+      <h2 class="foot-h">Projeto de pesquisa</h2>
+      <p class="foot-strong">Governança em Cidades Inteligentes</p>
+      <p>Projeto nº 14408 · PROPPG-UEL</p>
+      <p>Universidade Estadual de Londrina</p>
+      <p>Coordenação: Prof. Dr. Paulo Marcelo Ferrarese Pegino</p>
+      <p><a href="mailto:paulo.pegino@uel.br">paulo.pegino@uel.br</a></p>
+    </div>
+    <div>
+      <h2 class="foot-h">Dados e código</h2>
+      <p>Congestionamentos e alertas: Waze for Cities</p>
+      <p>Chuva: Open-Meteo (previsão) e IAPAR (medida)</p>
+      <p>Mapa: © colaboradores do OpenStreetMap</p>
+      <p><a id="foot-api" href="#">API pública</a> · <a href="v1/">Versão 1 do painel</a> · <a href="https://github.com/pferraresi/waze-londrina-api" rel="noopener">Código no GitHub</a></p>
+    </div>
   </div>
+  <div class="wrap foot-base">Observatório da Mobilidade Urbana de Londrina · UEL · 2026</div>
 </footer>
 
 <script>
@@ -587,6 +630,24 @@ const EN = qs.get("lang") === "en";
 const T = (pt, en) => EN ? en : pt;
 const LOCALE = EN ? "en-GB" : "pt-BR";
 const STATIC_EN = {
+"Achados da pesquisa, projeto Governança em Cidades Inteligentes – UEL. Resultados preliminares.": "Research findings, Smart City Governance project – UEL. Preliminary results.",
+"Este painel é parte do projeto de pesquisa Governança em Cidades Inteligentes (nº 14408, PROPPG-UEL), da Universidade Estadual de Londrina. Os dados vêm do programa": "This dashboard is part of the research project Smart City Governance (no. 14408, PROPPG-UEL) at the State University of Londrina (UEL). The data come from the",
+"Contato: Prof. Dr. Paulo Marcelo Ferrarese Pegino,": "Contact: Prof. Paulo Marcelo Ferrarese Pegino, PhD,",
+"Observatório da Mobilidade Urbana": "Urban Mobility Observatory",
+"Painel público com dados do Waze for Cities, atualizados a cada dois minutos.": "Public dashboard with Waze for Cities data, updated every two minutes.",
+"Projeto de pesquisa": "Research project",
+"Governança em Cidades Inteligentes": "Smart City Governance",
+"Projeto nº 14408 · PROPPG-UEL": "Project no. 14408 · PROPPG-UEL",
+"Universidade Estadual de Londrina": "State University of Londrina",
+"Coordenação: Prof. Dr. Paulo Marcelo Ferrarese Pegino": "Coordinator: Prof. Paulo Marcelo Ferrarese Pegino, PhD",
+"Dados e código": "Data and code",
+"Congestionamentos e alertas: Waze for Cities": "Jams and alerts: Waze for Cities",
+"Chuva: Open-Meteo (previsão) e IAPAR (medida)": "Rain: Open-Meteo (forecast) and IAPAR (measured)",
+"Mapa: © colaboradores do OpenStreetMap": "Map: © OpenStreetMap contributors",
+"Versão 1 do painel": "Dashboard version 1",
+"Código no GitHub": "Code on GitHub",
+"Observatório da Mobilidade Urbana de Londrina · UEL · 2026": "Londrina Urban Mobility Observatory · UEL · 2026",
+"Rodapé": "Footer",
 "Trânsito em Londrina": "Traffic in Londrina",
 "Observatório da Mobilidade Urbana · UEL": "Urban Mobility Observatory · UEL",
 "Carregando dados…": "Loading data…",
@@ -715,6 +776,7 @@ function applyLanguage() {
   document.querySelectorAll("[aria-label]").forEach(el => { const v = STATIC_EN[el.getAttribute("aria-label")]; if (v) el.setAttribute("aria-label", v); });
 }
 applyLanguage();
+document.getElementById("foot-api").href = (qs.get("api") || "https://web-production-b07b0.up.railway.app").replace(/\/$/, "") + "/docs";
 const API = (qs.get("api") || "https://web-production-b07b0.up.railway.app").replace(/\/$/, "");
 const METEO = qs.get("meteo") || "https://api.open-meteo.com/v1/forecast?latitude=-23.31&longitude=-51.16&hourly=precipitation,precipitation_probability&past_days=30&forecast_days=2&timezone=America%2FSao_Paulo";
 const REFRESH_MS = 120000;
