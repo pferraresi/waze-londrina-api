@@ -234,6 +234,29 @@ def audit_slot(dow: int = Query(0, ge=0, le=6), h1: int = Query(10, ge=0, le=23)
     return cached(f"audit:{dow}:{h1}:{h2}:{days}:{limit}", 1800, compute)
 
 
+@router.get("/audit/street")
+def audit_street(street: str = Query(..., min_length=3),
+                 lat: float = Query(...), lon: float = Query(...),
+                 radius: int = Query(400, ge=50, le=3000),
+                 dow: int = Query(0, ge=0, le=6),
+                 h1: int = Query(8, ge=0, le=23), h2: int = Query(14, ge=0, le=23),
+                 days: int = Query(56, ge=7, le=180)):
+    """Auditoria de uma rua em torno de um ponto: por hora (perto/longe do ponto,
+    dia-alvo × dias úteis) e por trecho de ~200 m no dia-alvo entre h1 e h2."""
+    def compute():
+        last = latest_snapshot()
+        params = P(start=last - timedelta(days=days), end=last, dow=dow,
+                   street=f"%{street}%", lat=lat, lon=lon, radius=radius, h1=h1, h2=h2)
+        return {
+            "params": {"street": street, "lat": lat, "lon": lon, "radius_m": radius,
+                       "dow": dow, "h1": h1, "h2": h2, "days": days},
+            "by_hour": query(Q.AUDIT_STREET_BY_HOUR, params),
+            "by_segment": query(Q.AUDIT_STREET_BY_SEGMENT, params),
+        }
+    key = f"astreet:{street}:{lat}:{lon}:{radius}:{dow}:{h1}:{h2}:{days}"
+    return cached(key, 1800, compute)
+
+
 @router.get("/meta")
 def meta():
     """Regras de exclusão em vigor — exibidas na aba 'Sobre os dados'."""
