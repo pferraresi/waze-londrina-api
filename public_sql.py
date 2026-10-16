@@ -329,6 +329,78 @@ ORDER BY alvo_km_medio DESC NULLS LAST
 LIMIT %(limit)s
 """
 
+# Auditoria de uma rua em torno de um ponto (ex.: igreja, escola, shopping).
+# Cada trecho de jam é reduzido ao seu centro (média dos vértices de line_json)
+# e medido em metros até o ponto. "alvo" = dia da semana escolhido; "util" =
+# segunda a sexta sem feriados. Percentuais sobre os snapshots daquela hora.
+AUDIT_STREET_CTE = BASE_CTE + """
+, slot AS (
+    SELECT s.collected_at, s.ts_local,
+           CASE WHEN EXTRACT(DOW FROM s.ts_local) = %(dow)s THEN 'alvo'
+                WHEN EXTRACT(DOW FROM s.ts_local) BETWEEN 1 AND 5
+                     AND NOT (s.ts_local::date = ANY(%(holidays)s::date[])) THEN 'util'
+           END AS grupo
+    FROM snaps s
+),
+n AS (
+    SELECT grupo, EXTRACT(HOUR FROM ts_local)::int AS hour,
+           COUNT(*)::float AS n, COUNT(DISTINCT ts_local::date) AS dias
+    FROM slot WHERE grupo IS NOT NULL GROUP BY 1, 2
+),
+seg AS (
+    SELECT ja.collected_at, ja.ts_local, sl.grupo,
+           EXTRACT(HOUR FROM ja.ts_local)::int AS hour,
+           ja.level, ja.length, ja.speed_kmh, c.lat, c.lon
+    FROM jall ja
+    JOIN slot sl ON sl.collected_at = ja.collected_at
+    CROSS JOIN LATERAL (
+        SELECT AVG((pt->>'y')::float) AS lat, AVG((pt->>'x')::float) AS lon
+        FROM json_array_elements(NULLIF(ja.line_json, '')::json) pt
+    ) c
+    WHERE sl.grupo IS NOT NULL AND ja.street ILIKE %(street)s
+),
+seg2 AS (
+    SELECT seg.*,
+           111320 * sqrt(power(lat - %(lat)s, 2)
+                         + power((lon - %(lon)s) * cos(radians(%(lat)s)), 2)) AS dist_m
+    FROM seg
+)
+"""
+
+# Por hora: perto (<= raio) e longe do ponto, domingo × dias úteis.
+AUDIT_STREET_BY_HOUR = AUDIT_STREET_CTE + """
+SELECT s.grupo, s.hour, (s.dist_m <= %(radius)s) AS perto,
+       ROUND((100.0 * COUNT(DISTINCT s.collected_at) / MAX(n.n))::numeric, 1) AS pct_tempo_com_jam,
+       ROUND((100.0 * COUNT(DISTINCT s.collected_at) FILTER (WHERE s.level >= 4) / MAX(n.n))::numeric, 1) AS pct_tempo_pesado,
+       ROUND(AVG(s.speed_kmh)::numeric, 1) AS vel_media,
+       ROUND((SUM(s.length) / MAX(n.n) / 1000.0)::numeric, 3) AS km_medio,
+       COUNT(DISTINCT s.ts_local::date) AS dias_com_jam,
+       MAX(n.dias) AS dias_total
+FROM seg2 s
+JOIN n ON n.grupo = s.grupo AND n.hour = s.hour
+GROUP BY s.grupo, s.hour, (s.dist_m <= %(radius)s)
+ORDER BY s.grupo, perto DESC, s.hour
+"""
+
+# Por trecho (centro arredondado ~200 m), só no dia-alvo dentro da faixa h1–h2.
+AUDIT_STREET_BY_SEGMENT = AUDIT_STREET_CTE + """
+, alvo_n AS (
+    SELECT SUM(n) AS n FROM n WHERE grupo = 'alvo' AND hour BETWEEN %(h1)s AND %(h2)s
+)
+SELECT ROUND(lat::numeric, 3) AS lat, ROUND(lon::numeric, 3) AS lon,
+       ROUND(AVG(dist_m)::numeric, 0) AS dist_m,
+       ROUND((100.0 * COUNT(DISTINCT collected_at) / (SELECT n FROM alvo_n))::numeric, 1) AS pct_tempo_com_jam,
+       ROUND((100.0 * COUNT(DISTINCT collected_at) FILTER (WHERE level >= 4) / (SELECT n FROM alvo_n))::numeric, 1) AS pct_tempo_pesado,
+       ROUND(AVG(speed_kmh)::numeric, 1) AS vel_media,
+       ROUND(AVG(length)::numeric, 0) AS comprimento_medio_m,
+       COUNT(DISTINCT ts_local::date) AS dias_com_jam
+FROM seg2
+WHERE grupo = 'alvo' AND hour BETWEEN %(h1)s AND %(h2)s
+GROUP BY 1, 2
+ORDER BY pct_tempo_com_jam DESC
+LIMIT 25
+"""
+
 INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_jams_collected_at ON jams (collected_at)",
     "CREATE INDEX IF NOT EXISTS idx_jams_uuid_level ON jams (uuid, level)",
