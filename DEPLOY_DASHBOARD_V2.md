@@ -14,7 +14,7 @@ Nenhuma tabela nova, nenhuma mudança no coletor (`main.py`).
 
 ## Passo a passo
 
-1. Copie os 5 arquivos para o repositório e faça commit no `main`.
+1. Copie os arquivos para o repositório (incluindo a pasta `v1/`) e faça commit no `main`. O `index.html` antigo vira `v1/index.html`, sem nenhuma alteração.
 2. O Railway (serviço `web`) faz o deploy sozinho a partir do `main`.
 3. Teste: abra `https://web-production-b07b0.up.railway.app/public/now` e `/docs`.
 4. O GitHub Pages publica o `index.html` novo em seguida.
