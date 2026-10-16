@@ -8,7 +8,7 @@
 | `public_api.py` | Endpoints `/public/*` (FastAPI), com cache em memória. |
 | `api.py` | +8 linhas: registra o `public_api`. Endpoints antigos continuam iguais. |
 | `index.html` | Novo dashboard público (abas Agora, Quando sair, Ruas críticas, Chuva, Sobre os dados). |
-| `painel-tecnico.html` | O dashboard antigo, renomeado. Continua funcionando. |
+| `v1/index.html` | O dashboard antigo, cópia idêntica, publicado em `/v1/`. |
 
 Nenhuma tabela nova, nenhuma mudança no coletor (`main.py`).
 
