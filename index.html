@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Trânsito em Londrina · Observatório da Mobilidade Urbana</title>
 <meta name="description" content="Como está o trânsito de Londrina agora, quando sair, ruas mais congestionadas e efeito da chuva. Projeto de pesquisa Cidades Inteligentes – UEL, com dados do Waze for Cities." />
+<link rel="alternate" hreflang="pt-BR" href="https://pferraresi.github.io/waze-londrina-api/" />
+<link rel="alternate" hreflang="en" href="https://pferraresi.github.io/waze-londrina-api/?lang=en" />
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
 <meta name="theme-color" content="#00753B" />
@@ -113,6 +115,12 @@ header.site {
   font-size: 14px; color: var(--ink-2);
   padding: 6px 12px; border-radius: 999px; background: var(--uel-soft);
 }
+.site-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.lang-switch {
+  font-size: 14px; font-weight: 600; color: var(--ink-2); text-decoration: none;
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--rule);
+}
+.lang-switch:hover { color: var(--ink); border-color: var(--ink-3); }
 .fresh .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--uel); }
 .fresh.stale { background: var(--warn-bg); color: var(--warn-ink); }
 .fresh.stale .dot { background: var(--warn-ink); }
@@ -342,7 +350,10 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
           <span class="brand-sub">Observatório da Mobilidade Urbana · UEL</span>
         </span>
       </a>
-      <span class="fresh" id="fresh" role="status"><span class="dot" aria-hidden="true"></span><span id="fresh-text">Carregando dados…</span></span>
+      <span class="site-tools">
+        <span class="fresh" id="fresh" role="status"><span class="dot" aria-hidden="true"></span><span id="fresh-text">Carregando dados…</span></span>
+        <a class="lang-switch" id="lang-switch" href="?lang=en" hreflang="en" lang="en">English</a>
+      </span>
     </div>
     <button class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="tabs-nav">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -538,7 +549,7 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
       <h3>O que fica de fora</h3>
       <ul id="exclusions">
         <li>Rua Constantino Pialarissi, em obra de duplicação.</li>
-        <li>Ruas Prof. Joaquim de Matos Barreto e Bento Munhoz da Rocha Neto aos domingos, quando ficam fechadas para lazer.</li>
+        <li>Ruas Prof. Joaquim de Matos Barreto e Bento Munhoz da Rocha Neto aos domingos e feriados, quando ficam parcialmente fechadas para lazer.</li>
         <li>Qualquer trecho parado (nível 5) por mais de 48 horas, tratado como interdição.</li>
       </ul>
       <p>Esses trechos continuam aparecendo no mapa, marcados como interdição, mas não entram nas médias nem no ranking.</p>
@@ -548,7 +559,7 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
         <li>O Waze só vê onde há usuários do Waze. Ruas pouco usadas pelo aplicativo podem estar sub-representadas.</li>
         <li>Não há contagem de veículos. Os números descrevem lentidão, não volume de tráfego.</li>
         <li>Há períodos sem coleta (por exemplo, 22 a 25 de maio e 19 a 24 de agosto de 2026). Os gráficos deixam essas lacunas em branco.</li>
-        <li>A chuva vem de um modelo meteorológico, que suaviza tempestades locais. Bom para orientação, fraco para estatística.</li>
+        <li>A previsão e os gráficos recentes de chuva vêm de um modelo meteorológico, que suaviza tempestades locais. A análise do período da pesquisa usa a chuva medida pelo pluviômetro do IAPAR.</li>
       </ul>
 
       <h3>Para pesquisadores</h3>
@@ -561,7 +572,7 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
 <footer class="site">
   <div class="wrap">
     <span>Observatório da Mobilidade Urbana de Londrina · Projeto Cidades Inteligentes – UEL</span>
-    <span>Dados: Waze for Cities · Chuva: Open-Meteo · Mapa: © OpenStreetMap</span>
+    <span>Dados: Waze for Cities · Chuva: Open-Meteo, IAPAR · Mapa: © OpenStreetMap</span>
   </div>
 </footer>
 
@@ -571,18 +582,155 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
 
 // ------------------------------------------------------------ configuração
 const qs = new URLSearchParams(location.search);
+// idioma: ?lang=en mostra a versão em inglês; o padrão é português
+const EN = qs.get("lang") === "en";
+const T = (pt, en) => EN ? en : pt;
+const LOCALE = EN ? "en-GB" : "pt-BR";
+const STATIC_EN = {
+"Trânsito em Londrina": "Traffic in Londrina",
+"Observatório da Mobilidade Urbana · UEL": "Urban Mobility Observatory · UEL",
+"Carregando dados…": "Loading data…",
+"Agora": "Now",
+"Quando sair": "When to go",
+"Ruas críticas": "Problem streets",
+"Chuva": "Rain",
+"Sobre os dados": "About the data",
+"Lendo o trânsito da cidade…": "Reading the city's traffic…",
+"Gravidade dos trechos congestionados": "How bad the slow stretches are",
+"Alertas de motoristas agora": "Driver alerts right now",
+"Relatos enviados por usuários do Waze ainda ativos. Primeiro o que afeta o trânsito; buracos por último.": "Reports from Waze users that are still active. What affects traffic comes first; potholes last.",
+"Hoje comparado a um dia normal": "Today compared with a typical day",
+"Quilômetros de ruas em trânsito pesado (níveis 4 e 5), hora a hora.": "Kilometres of streets in heavy traffic (levels 4 and 5), hour by hour.",
+"Hoje": "Today",
+"Normal para este dia da semana": "Typical for this weekday",
+"Quando o trânsito aperta": "When traffic gets heavy",
+"Média das últimas quatro semanas. Cada quadrado é uma hora de um dia da semana; quanto mais forte a cor, mais quilômetros de ruas em trânsito pesado. Toque num quadrado para ver o número.": "Average of the last four weeks. Each square is one hour of one weekday; the stronger the colour, the more kilometres of streets in heavy traffic. Tap a square to see the number.",
+"Escolha um dia": "Pick a day",
+"Ruas que mais ficam paradas": "Streets that jam the most",
+"Quantas horas por dia, em média, cada rua passou com trânsito pesado (níveis 4 e 5 do Waze). Obras longas, interdições e o lazer de domingo ficam de fora para não distorcer o ranking.": "How many hours a day, on average, each street spent in heavy traffic (Waze levels 4 and 5). Long roadworks, closures and Sunday leisure closures are left out so they don't distort the ranking.",
+"Últimos 7 dias": "Last 7 days",
+"Últimos 30 dias": "Last 30 days",
+"Interdições e bloqueios longos": "Long closures",
+"Trechos parados (nível 5) há mais de 48 horas, ou obras conhecidas. Não entram no ranking.": "Stretches at a standstill (level 5) for more than 48 hours, or known roadworks. They are not ranked.",
+"Rua": "Street",
+"Desde": "Since",
+"Buracos relatados": "Reported potholes",
+"Ruas com mais alertas de buraco no período, enviados por motoristas.": "Streets with the most pothole alerts from drivers in the period.",
+"Alertas": "Alerts",
+"Chuva e trânsito": "Rain and traffic",
+"Consultando a previsão…": "Checking the forecast…",
+"Previsão e histórico de chuva do modelo meteorológico Open-Meteo para o centro de Londrina. Serve para orientar, não substitui a Defesa Civil.": "Rain forecast and recent history from the Open-Meteo weather model for central Londrina. A guide only; it does not replace Civil Defence warnings.",
+"Próximas 24 horas": "Next 24 hours",
+"Chuva prevista por hora (mm) e chance de chover.": "Forecast rain per hour (mm) and chance of rain.",
+"Últimos 14 dias": "Last 14 days",
+"Os dois gráficos usam a mesma linha do tempo: chuva em cima, trânsito pesado embaixo. Os pontos azuis marcam horas com alerta de alagamento no Waze.": "Both charts share the same timeline: rain on top, heavy traffic below. Blue dots mark hours with a Waze flooding alert.",
+"Chuva (mm por hora)": "Rain (mm per hour)",
+"Trânsito pesado (km de ruas, média na hora)": "Heavy traffic (km of streets, hourly average)",
+"Com chuva × sem chuva, nos últimos 30 dias": "Rain vs. no rain, last 30 days",
+"Para ser justo, cada hora chuvosa é comparada com horas secas no mesmo horário do dia (chuva às 18h com seco às 18h).": "To keep it fair, each rainy hour is compared with dry hours at the same time of day (rain at 6 pm with dry at 6 pm).",
+"Calculando…": "Calculating…",
+"Alagamentos e o pluviômetro": "Flooding and the rain gauge",
+"Achados da pesquisa, Projeto Cidades Inteligentes – UEL. Resultados preliminares.": "Research findings, Smart Cities Project – UEL. Preliminary results.",
+"Os motoristas avisam quando alaga": "Drivers report when streets flood",
+"Os alertas de alagamento enviados pelo Waze sobem junto com a chuva medida pelo pluviômetro do IAPAR, na mesma hora (correlação 0,64). Os relatos funcionam como um sensor de alagamento espalhado pela cidade.": "Waze flooding alerts rise together with rain measured by the IAPAR rain gauge, in the same hour (correlation 0.64). Driver reports work as a flood sensor spread across the city.",
+"Modelo para prever, pluviômetro para medir": "A model to forecast, a gauge to measure",
+"A previsão desta página vem de um modelo meteorológico, que suaviza as chuvas curtas e fortes típicas de Londrina. Por isso a análise abaixo usa a chuva medida pelo IAPAR.": "The forecast on this page comes from a weather model, which smooths out the short, heavy showers typical of Londrina. That is why the analysis below uses rain measured by IAPAR.",
+"Período da pesquisa: chuva medida × trânsito": "Study period: measured rain vs. traffic",
+"Chuva do pluviômetro do IAPAR em Londrina e trânsito do Waze, hora a hora.": "Rain from the IAPAR gauge in Londrina and Waze traffic, hour by hour.",
+"Cruzando chuva e trânsito…": "Matching rain and traffic…",
+"Trânsito pesado em relação ao tempo seco": "Heavy traffic compared with dry weather",
+"Cada hora de chuva é comparada com horas secas no mesmo horário e no mesmo tipo de dia (útil ou fim de semana).": "Each rainy hour is compared with dry hours at the same time and on the same kind of day (weekday or weekend).",
+"Alertas de alagamento por hora": "Flooding alerts per hour",
+"Média de alertas de alagamento novos no Waze em cada faixa de chuva.": "Average number of new Waze flooding alerts in each rain band.",
+"Faixas com menos de 30 horas aparecem esmaecidas: são poucas horas para conclusão. Horas sem coleta do Waze ficam de fora.": "Bands with fewer than 30 hours are faded: too few hours to conclude anything. Hours without Waze data are left out.",
+"Chuva por dia no período (mm, IAPAR)": "Daily rain in the period (mm, IAPAR)",
+"Este painel é parte do projeto de pesquisa Cidades Inteligentes da Universidade Estadual de Londrina. Os dados vêm do programa": "This dashboard is part of the Smart Cities research project at the State University of Londrina (UEL). The data come from the",
+", que compartilha com a cidade os congestionamentos detectados pelo aplicativo e os alertas enviados por motoristas.": " programme, which shares with the city the traffic jams detected by the app and the alerts sent by drivers.",
+"Como os números são calculados": "How the numbers are calculated",
+"A cada dois minutos registramos uma \"fotografia\" do trânsito da cidade. Um mesmo congestionamento aparece em várias fotografias seguidas, então nunca somamos fotografias: usamos médias.": "Every two minutes we record a \"snapshot\" of the city's traffic. The same jam shows up in many snapshots in a row, so we never add snapshots up: we use averages.",
+"Trânsito pesado": "Heavy traffic",
+"Trechos nos níveis 4 e 5 do Waze, ou seja, muito lentos ou parados.": "Stretches at Waze levels 4 and 5, that is, very slow or at a standstill.",
+"km congestionados": "km congested",
+"Soma do comprimento dos trechos congestionados numa fotografia. Em gráficos por hora, é a média das fotografias daquela hora.": "Total length of congested stretches in one snapshot. In hourly charts, it is the average over that hour's snapshots.",
+"Normal": "Typical",
+"Média do mesmo dia da semana e horário nas últimas quatro semanas.": "Average for the same weekday and time over the last four weeks.",
+"Horas por dia": "Hours per day",
+"Fração das fotografias em que a rua estava em trânsito pesado, multiplicada por 24 horas. Equivale ao indicador 17.2 da norma ISO 37120.": "Share of snapshots in which the street was in heavy traffic, multiplied by 24 hours. Equivalent to indicator 17.2 of ISO 37120.",
+"Relatos de motoristas (buraco, acidente, alagamento, via fechada). Cada relato é contado uma vez, por mais que dure.": "Driver reports (pothole, crash, flooding, road closed). Each report is counted once, however long it lasts.",
+"Níveis do Waze": "Waze levels",
+"O que fica de fora": "What is left out",
+"Rua Constantino Pialarissi, em obra de duplicação.": "Rua Constantino Pialarissi, under widening works.",
+"Ruas Prof. Joaquim de Matos Barreto e Bento Munhoz da Rocha Neto aos domingos, quando ficam fechadas para lazer.": "Rua Prof. Joaquim de Matos Barreto and Rua Bento Munhoz da Rocha Neto on Sundays and holidays, when they are partly closed for leisure.",
+"Ruas Prof. Joaquim de Matos Barreto e Bento Munhoz da Rocha Neto aos domingos e feriados, quando ficam parcialmente fechadas para lazer.": "Rua Prof. Joaquim de Matos Barreto and Rua Bento Munhoz da Rocha Neto on Sundays and holidays, when they are partly closed for leisure.",
+"Qualquer trecho parado (nível 5) por mais de 48 horas, tratado como interdição.": "Any stretch at a standstill (level 5) for more than 48 hours, treated as a closure.",
+"Esses trechos continuam aparecendo no mapa, marcados como interdição, mas não entram nas médias nem no ranking.": "These stretches still show on the map, marked as closures, but they are not counted in averages or rankings.",
+"Limites": "Limitations",
+"O Waze só vê onde há usuários do Waze. Ruas pouco usadas pelo aplicativo podem estar sub-representadas.": "Waze only sees where Waze users are. Streets with few app users may be under-represented.",
+"Não há contagem de veículos. Os números descrevem lentidão, não volume de tráfego.": "There are no vehicle counts. The numbers describe slowness, not traffic volume.",
+"Há períodos sem coleta (por exemplo, 22 a 25 de maio e 19 a 24 de agosto de 2026). Os gráficos deixam essas lacunas em branco.": "There are periods without data (for example, 22–25 May and 19–24 August 2026). Charts leave these gaps blank.",
+"A previsão e os gráficos recentes de chuva vêm de um modelo meteorológico, que suaviza tempestades locais. A análise do período da pesquisa usa a chuva medida pelo pluviômetro do IAPAR.": "The forecast and recent rain charts come from a weather model, which smooths out local storms. The study-period analysis uses rain measured by the IAPAR gauge.",
+"Para pesquisadores": "For researchers",
+"Os dados agregados estão disponíveis na": "Aggregated data are available through the",
+"API pública": "public API",
+"(endpoints": "(endpoints",
+"). A": "). The",
+"versão 1 do painel": "first version of the dashboard",
+"continua no ar, sem alterações, para comparação.": "is still online, unchanged, for comparison.",
+"Contato: Projeto de Pesquisa Cidades Inteligentes, Universidade Estadual de Londrina.": "Contact: Smart Cities Research Project, State University of Londrina.",
+"Observatório da Mobilidade Urbana de Londrina · Projeto Cidades Inteligentes – UEL": "Londrina Urban Mobility Observatory · Smart Cities Project – UEL",
+"Dados: Waze for Cities · Chuva: Open-Meteo · Mapa: © OpenStreetMap": "Data: Waze for Cities · Rain: Open-Meteo, IAPAR · Map: © OpenStreetMap",
+"Dados: Waze for Cities · Chuva: Open-Meteo, IAPAR · Mapa: © OpenStreetMap": "Data: Waze for Cities · Rain: Open-Meteo, IAPAR · Map: © OpenStreetMap",
+"Trânsito em Londrina, início": "Traffic in Londrina, home",
+"Seções": "Sections",
+"Mapa dos congestionamentos agora": "Map of current traffic jams",
+"Gráfico de linhas: hoje versus dia normal": "Line chart: today versus a typical day",
+"Mapa de calor: dia da semana por hora": "Heat map: weekday by hour",
+"Dia da semana": "Weekday",
+"Gráfico de barras: trânsito pesado por hora no dia escolhido": "Bar chart: heavy traffic by hour on the chosen day",
+"Período": "Period",
+"Gráfico de barras: chuva prevista": "Bar chart: forecast rain",
+"Chuva por hora nos últimos 14 dias": "Rain per hour, last 14 days",
+"Trânsito pesado por hora nos últimos 14 dias": "Heavy traffic per hour, last 14 days",
+"Chuva diária medida pelo IAPAR": "Daily rain measured by IAPAR"
+};
+function applyLanguage() {
+  const sw = document.getElementById("lang-switch");
+  const other = new URLSearchParams(location.search);
+  if (EN) other.delete("lang"); else other.set("lang", "en");
+  const q = other.toString();
+  sw.href = (q ? "?" + q : location.pathname) + location.hash;
+  sw.textContent = EN ? "Português" : "English";
+  sw.setAttribute("lang", EN ? "pt-BR" : "en"); sw.setAttribute("hreflang", EN ? "pt-BR" : "en");
+  sw.addEventListener("click", () => { sw.href = sw.href.split("#")[0] + location.hash; });
+  if (!EN) return;
+  document.documentElement.lang = "en";
+  document.title = "Traffic in Londrina · Urban Mobility Observatory";
+  document.querySelector('meta[name="description"]')?.setAttribute("content", "Traffic in Londrina right now, when to go, problem streets and the effect of rain. Smart Cities research project – UEL, with Waze for Cities data.");
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement.closest("script,style") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const n of nodes) {
+    const key = n.nodeValue.replace(/\s+/g, " ").trim();
+    if (key && STATIC_EN[key] != null) n.nodeValue = n.nodeValue.replace(/\S[\s\S]*\S|\S/, STATIC_EN[key]);
+  }
+  document.querySelectorAll("[aria-label]").forEach(el => { const v = STATIC_EN[el.getAttribute("aria-label")]; if (v) el.setAttribute("aria-label", v); });
+}
+applyLanguage();
 const API = (qs.get("api") || "https://web-production-b07b0.up.railway.app").replace(/\/$/, "");
 const METEO = qs.get("meteo") || "https://api.open-meteo.com/v1/forecast?latitude=-23.31&longitude=-51.16&hourly=precipitation,precipitation_probability&past_days=30&forecast_days=2&timezone=America%2FSao_Paulo";
 const REFRESH_MS = 120000;
-const DAYS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
-const DAYS_FULL = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
-const DAYS_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DAYS = T(["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"], ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]);
+const DAYS_FULL = T(["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"], ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]);
+const DAYS_SHORT = T(["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"], ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
+const MONTHS_SHORT = T(["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"], ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]);
+// hora e data no formato de cada idioma
+const hr = h => EN ? `${String(h).padStart(2, "0")}:00` : `${h}h`;
+const dm = (d, m) => EN ? `${+d} ${MONTHS_SHORT[+m - 1]}` : `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
 const LEVELS = [
-  { n: 1, name: "Leve", desc: "Trânsito um pouco mais lento que o normal" },
-  { n: 2, name: "Moderado", desc: "Lento" },
-  { n: 3, name: "Lento", desc: "Bem lento, com paradas" },
-  { n: 4, name: "Pesado", desc: "Muito lento, anda e para" },
-  { n: 5, name: "Parado", desc: "Trânsito parado ou via bloqueada" },
+  { n: 1, name: T("Leve", "Light"), desc: T("Trânsito um pouco mais lento que o normal", "A little slower than usual") },
+  { n: 2, name: T("Moderado", "Moderate"), desc: T("Lento", "Slow") },
+  { n: 3, name: T("Lento", "Slow"), desc: T("Bem lento, com paradas", "Very slow, with stops") },
+  { n: 4, name: T("Pesado", "Heavy"), desc: T("Muito lento, anda e para", "Stop-and-go") },
+  { n: 5, name: T("Parado", "Standstill"), desc: T("Trânsito parado ou via bloqueada", "Traffic stopped or road blocked") },
 ];
 const ALERT_LABELS = {
   HAZARD_ON_ROAD_POT_HOLE: "Buraco na via",
@@ -603,7 +751,20 @@ const ALERT_LABELS = {
   JAM: "Congestionamento relatado", JAM_HEAVY_TRAFFIC: "Congestionamento relatado",
   JAM_STAND_STILL_TRAFFIC: "Trânsito parado (relato)", JAM_MODERATE_TRAFFIC: "Trânsito moderado (relato)",
 };
-const alertLabel = s => ALERT_LABELS[s] || (s || "Outro").replace(/_/g, " ").toLowerCase();
+const ALERT_LABELS_EN = {
+  HAZARD_ON_ROAD_POT_HOLE: "Pothole", HAZARD_WEATHER_FLOOD: "Flooding", HAZARD_ON_ROAD_FLOOD: "Flooding",
+  HAZARD_WEATHER: "Bad weather", HAZARD_WEATHER_FOG: "Fog", HAZARD_WEATHER_HEAVY_RAIN: "Heavy rain",
+  ACCIDENT: "Crash", ACCIDENT_MINOR: "Minor crash", ACCIDENT_MAJOR: "Major crash",
+  ROAD_CLOSED: "Road closed", ROAD_CLOSED_CONSTRUCTION: "Road closed for works",
+  ROAD_CLOSED_EVENT: "Road closed for an event", ROAD_CLOSED_HAZARD: "Road closed (hazard)",
+  HAZARD_ON_ROAD_CONSTRUCTION: "Roadworks", HAZARD_ON_ROAD_LANE_CLOSED: "Lane closed",
+  HAZARD_ON_ROAD_CAR_STOPPED: "Vehicle stopped on road", HAZARD_ON_SHOULDER_CAR_STOPPED: "Vehicle stopped on shoulder",
+  HAZARD_ON_ROAD_OBJECT: "Object on road", HAZARD_ON_ROAD_TRAFFIC_LIGHT_FAULT: "Broken traffic light",
+  HAZARD_ON_ROAD_ROAD_KILL: "Dead animal on road", HAZARD_ON_SHOULDER_ANIMALS: "Animals on shoulder",
+  HAZARD_ON_ROAD: "Hazard on road", HAZARD: "Hazard on road",
+  JAM: "Reported jam", JAM_HEAVY_TRAFFIC: "Reported jam", JAM_STAND_STILL_TRAFFIC: "Standstill (reported)", JAM_MODERATE_TRAFFIC: "Moderate traffic (reported)",
+};
+const alertLabel = s => (EN ? ALERT_LABELS_EN : ALERT_LABELS)[s] || (s || T("Outro", "Other")).replace(/_/g, " ").toLowerCase();
 const ICON_PATHS = {
   water: '<path d="M3 7c3 -2 6 -2 9 0s6 2 9 0"/><path d="M3 17c3 -2 6 -2 9 0s6 2 9 0"/><path d="M3 12c3 -2 6 -2 9 0s6 2 9 0"/>',
   crash: '<path d="M8 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M7 6l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0h-5m0 -6h8m-6 0v-5m2 0h-4"/><path d="M14 8v-2"/><path d="M19 12h2"/><path d="M17.5 15.5l1.5 1.5"/><path d="M17.5 8.5l1.5 -1.5"/>',
@@ -617,12 +778,12 @@ const ICON_PATHS = {
 };
 // grupo → cor e tamanho; cada subtipo do Waze cai num ícone e num grupo
 const ICON_GROUPS = {
-  agua: { color: "#1f6fd1", size: "big", label: "Alagamento" },
-  acidente: { color: "#c62f2f", size: "big", label: "Acidente" },
-  bloqueio: { color: "#4b5563", size: "big", label: "Bloqueio ou obra" },
-  perigo: { color: "#b45309", size: "", label: "Perigo na via" },
-  buraco: { color: "#8a5a2b", size: "small", label: "Buraco" },
-  relato: { color: "#6d28d9", size: "", label: "Congestionamento relatado" },
+  agua: { color: "#1f6fd1", size: "big", label: T("Alagamento", "Flooding") },
+  acidente: { color: "#c62f2f", size: "big", label: T("Acidente", "Crash") },
+  bloqueio: { color: "#4b5563", size: "big", label: T("Bloqueio ou obra", "Closure or works") },
+  perigo: { color: "#b45309", size: "", label: T("Perigo na via", "Hazard on road") },
+  buraco: { color: "#8a5a2b", size: "small", label: T("Buraco", "Pothole") },
+  relato: { color: "#6d28d9", size: "", label: T("Congestionamento relatado", "Reported jam") },
 };
 function alertKind(s = "") {
   if (/FLOOD/.test(s)) return ["water", "agua"];
@@ -645,7 +806,7 @@ const ICON_PX = { big: 30, "": 26, small: 22, mini: 20 };
 // ------------------------------------------------------------ utilidades
 const $ = s => document.querySelector(s);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const nf = (v, d = 1) => Number(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const nf = (v, d = 1) => Number(v ?? 0).toLocaleString(LOCALE, { minimumFractionDigits: d, maximumFractionDigits: d });
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const levelColor = n => css(`--l${n}`);
 
@@ -661,10 +822,10 @@ function localParts(iso) { // "2026-10-16T15:10:00-03:00" → Date-like parts se
 }
 function dowOf(dateStr) { const [y, m, d] = dateStr.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); }
 function ago(min) {
-  if (min < 1.5) return "agora há pouco";
-  if (min < 60) return `há ${Math.round(min)} min`;
-  const h = min / 60; if (h < 24) return `há ${Math.round(h)} h`;
-  return `há ${Math.round(h / 24)} dias`;
+  if (min < 1.5) return T("agora há pouco", "just now");
+  if (min < 60) return T(`há ${Math.round(min)} min`, `${Math.round(min)} min ago`);
+  const h = min / 60; if (h < 24) return T(`há ${Math.round(h)} h`, `${Math.round(h)} h ago`);
+  return T(`há ${Math.round(h / 24)} dias`, `${Math.round(h / 24)} days ago`);
 }
 
 // ------------------------------------------------------------ tema dos gráficos
@@ -729,8 +890,8 @@ $("#menu-btn").addEventListener("click", () => setMenu($("#menu-btn").getAttribu
 document.addEventListener("keydown", e => { if (e.key === "Escape") setMenu(false); });
 function handleErr(e) {
   console.error(e);
-  if (e.status === 404) banner("A API ainda não tem os endpoints públicos (/public). Publique a versão nova da API no Railway para ver os dados.");
-  else banner("Não foi possível falar com o servidor de dados agora. Tentaremos de novo em 2 minutos.");
+  if (e.status === 404) banner(T("A API ainda não tem os endpoints públicos (/public). Publique a versão nova da API no Railway para ver os dados.", "The API does not have the public endpoints (/public) yet."));
+  else banner(T("Não foi possível falar com o servidor de dados agora. Tentaremos de novo em 2 minutos.", "The data server can't be reached right now. We'll try again in 2 minutes."));
 }
 
 // ------------------------------------------------------------ AGORA
@@ -749,9 +910,9 @@ function initMap() {
   const groupIcon = { agua: "HAZARD_WEATHER_FLOOD", acidente: "ACCIDENT", bloqueio: "ROAD_CLOSED", perigo: "HAZARD", relato: "JAM" };
   $("#map-legend").innerHTML =
     LEVELS.map(l => `<span><i class="sw line" style="background:var(--l${l.n})"></i>${l.name}</span>`).join("") +
-    `<span><i class="sw dash"></i>Interdição</span>` +
+    `<span><i class="sw dash"></i>${T("Interdição", "Closure")}</span>` +
     Object.entries(groupIcon).map(([g, s]) => `<span>${iconHtml(s, "mini")}${ICON_GROUPS[g].label}</span>`).join("") +
-    `<label><input type="checkbox" id="show-holes" />${iconHtml("HAZARD_ON_ROAD_POT_HOLE", "mini")}<span id="holes-label">Mostrar buracos</span></label>`;
+    `<label><input type="checkbox" id="show-holes" />${iconHtml("HAZARD_ON_ROAD_POT_HOLE", "mini")}<span id="holes-label">${T("Mostrar buracos", "Show potholes")}</span></label>`;
   $("#show-holes").addEventListener("change", drawAlerts);
   map.on("zoomend", drawAlerts);
 }
@@ -764,7 +925,7 @@ function drawAlerts() {
   const showHoles = $("#show-holes")?.checked;
   const pts = alertPoints.filter(a => showHoles || alertKind(a.s)[1] !== "buraco");
   const holes = alertPoints.filter(a => alertKind(a.s)[1] === "buraco").length;
-  const hl = $("#holes-label"); if (hl) hl.textContent = `Mostrar buracos (${holes})`;
+  const hl = $("#holes-label"); if (hl) hl.textContent = T(`Mostrar buracos (${holes})`, `Show potholes (${holes})`);
   const R = map.getZoom() >= 16 ? 0 : 36;
   const clusters = [];
   for (const a of pts) {
@@ -807,8 +968,8 @@ function renderMap(geo) {
       color: p.interdicao ? css("--blocked") : levelColor(p.level),
       weight: p.level >= 4 ? 5 : 4, dashArray: p.interdicao ? "6 6" : null, lineCap: "round",
     }).bindTooltip(
-      `<b>${esc(p.street)}</b><br>${p.interdicao ? "Interdição / bloqueio longo" : `${LEVELS[p.level - 1]?.name || ""} · ${nf(p.speed_kmh, 0)} km/h`}` +
-      `<br>${nf(p.length_m / 1000, 1)} km${p.delay_s > 0 ? ` · +${nf(p.delay_s / 60, 0)} min de atraso` : ""}`,
+      `<b>${esc(p.street)}</b><br>${p.interdicao ? T("Interdição / bloqueio longo", "Long closure") : `${LEVELS[p.level - 1]?.name || ""} · ${nf(p.speed_kmh, 0)} km/h`}` +
+      `<br>${nf(p.length_m / 1000, 1)} km${p.delay_s > 0 ? ` · +${nf(p.delay_s / 60, 0)} ${T("min de atraso", "min delay")}` : ""}`,
       { sticky: true }).addTo(jamLayer);
   }
   alertPoints = geo.features.filter(f => f.properties.kind === "alert").map(f => ({
@@ -826,42 +987,52 @@ function renderNow(now) {
   const f = $("#fresh");
   f.classList.toggle("stale", !!now.stale);
   $("#fresh-text").textContent = now.stale
-    ? `Coleta parada · último dado ${ago(now.data_age_minutes)}`
-    : `Atualizado ${ago(now.data_age_minutes)}`;
-  if (now.stale) banner(`A coleta de dados está parada desde ${String(loc.d).padStart(2, "0")}/${String(loc.mo).padStart(2, "0")} às ${loc.h}h${String(loc.mi).padStart(2, "0")}. Os números abaixo são desse momento.`);
+    ? T(`Coleta parada · último dado ${ago(now.data_age_minutes)}`, `Collection paused · last data ${ago(now.data_age_minutes)}`)
+    : T(`Atualizado ${ago(now.data_age_minutes)}`, `Updated ${ago(now.data_age_minutes)}`);
+  const hm = `${String(loc.h).padStart(2, "0")}:${String(loc.mi).padStart(2, "0")}`;
+  if (now.stale) banner(T(`A coleta de dados está parada desde ${dm(loc.d, loc.mo)} às ${hm}. Os números abaixo são desse momento.`,
+    `Data collection has been paused since ${dm(loc.d, loc.mo)} at ${hm}. The numbers below are from that moment.`));
 
   const heavy = now.km_heavy, total = now.km_total;
   $("#headline").innerHTML = heavy >= 0.05
-    ? `Agora, <b>${nf(heavy)} km</b> de ruas de Londrina estão em trânsito pesado.`
-    : `Agora, o trânsito de Londrina está <b>fluindo</b>: nenhum trecho em trânsito pesado.`;
+    ? T(`Agora, <b>${nf(heavy)} km</b> de ruas de Londrina estão em trânsito pesado.`, `Right now, <b>${nf(heavy)} km</b> of Londrina's streets are in heavy traffic.`)
+    : T(`Agora, o trânsito de Londrina está <b>fluindo</b>: nenhum trecho em trânsito pesado.`, `Right now, Londrina's traffic is <b>flowing</b>: no stretch in heavy traffic.`);
 
   const t = now.typical || {};
   let cmp = "";
   if (t.snapshots >= 10 && t.km_heavy > 0.2) {
     const pct = (heavy / t.km_heavy - 1) * 100;
-    const when = `${DAYS_FULL[dow]} às ${loc.h}h`;
-    if (Math.abs(pct) < 15) cmp = `<span class="chip">Normal</span> para uma ${when}.`;
-    else if (pct > 0) cmp = `<span class="chip up">${nf(pct, 0)}% acima</span> do normal para uma ${when}.`;
-    else cmp = `<span class="chip down">${nf(-pct, 0)}% abaixo</span> do normal para uma ${when}.`;
-    cmp = cmp.replace("uma sábado", "um sábado").replace("uma domingo", "um domingo");
-    if (heavy < 0.05) cmp = `Num${dow === 0 || dow === 6 ? "" : "a"} ${DAYS_FULL[dow]} às ${loc.h}h costuma haver <b>${nf(t.km_heavy)} km</b> em trânsito pesado.`;
+    if (EN) {
+      const when = `a ${DAYS_FULL[dow]} at ${hr(loc.h)}`;
+      if (Math.abs(pct) < 15) cmp = `<span class="chip">Typical</span> for ${when}.`;
+      else if (pct > 0) cmp = `<span class="chip up">${nf(pct, 0)}% above</span> typical for ${when}.`;
+      else cmp = `<span class="chip down">${nf(-pct, 0)}% below</span> typical for ${when}.`;
+      if (heavy < 0.05) cmp = `On ${when} there are usually <b>${nf(t.km_heavy)} km</b> in heavy traffic.`;
+    } else {
+      const when = `${DAYS_FULL[dow]} às ${hr(loc.h)}`;
+      if (Math.abs(pct) < 15) cmp = `<span class="chip">Normal</span> para uma ${when}.`;
+      else if (pct > 0) cmp = `<span class="chip up">${nf(pct, 0)}% acima</span> do normal para uma ${when}.`;
+      else cmp = `<span class="chip down">${nf(-pct, 0)}% abaixo</span> do normal para uma ${when}.`;
+      cmp = cmp.replace("uma sábado", "um sábado").replace("uma domingo", "um domingo");
+      if (heavy < 0.05) cmp = `Num${dow === 0 || dow === 6 ? "" : "a"} ${when} costuma haver <b>${nf(t.km_heavy)} km</b> em trânsito pesado.`;
+    }
   } else if (t.snapshots >= 10) {
-    cmp = `Nesse horário o trânsito costuma ser tranquilo.`;
+    cmp = T(`Nesse horário o trânsito costuma ser tranquilo.`, `Traffic is usually light at this time.`);
   }
   $("#compare").innerHTML = cmp;
 
   $("#facts").innerHTML = [
-    [nf(total), "km com alguma lentidão"],
-    [nf(now.active_jams, 0), "trechos congestionados"],
-    [now.avg_speed_kmh ? nf(now.avg_speed_kmh, 0) + " km/h" : "–", "velocidade média nos trechos lentos"],
+    [nf(total), T("km com alguma lentidão", "km with some slowdown")],
+    [nf(now.active_jams, 0), T("trechos congestionados", "congested stretches")],
+    [now.avg_speed_kmh ? nf(now.avg_speed_kmh, 0) + " km/h" : "–", T("velocidade média nos trechos lentos", "average speed on slow stretches")],
   ].map(([v, k]) => `<div class="fact"><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
 
   const counts = [now.l1, now.l2, now.l3, now.l4, now.l5];
   const sum = counts.reduce((a, b) => a + b, 0) || 1;
   $("#levelbar").innerHTML = counts.map((c, i) => c ? `<span style="flex:${c};background:var(--l${i + 1})" title="${LEVELS[i].name}: ${c}"></span>` : "").join("");
-  $("#levelbar").setAttribute("aria-label", LEVELS.map((l, i) => `${l.name}: ${counts[i]} trechos`).join(", "));
+  $("#levelbar").setAttribute("aria-label", LEVELS.map((l, i) => `${l.name}: ${counts[i]} ${T("trechos", "stretches")}`).join(", "));
   $("#levelkey").innerHTML = LEVELS.map((l, i) => `<li><i class="sw" style="background:var(--l${l.n})"></i>${l.name} <b>${counts[i]}</b></li>`).join("")
-    + (now.interdicoes ? `<li><i class="sw dash"></i>Interdição <b>${now.interdicoes}</b></li>` : "");
+    + (now.interdicoes ? `<li><i class="sw dash"></i>${T("Interdição", "Closure")} <b>${now.interdicoes}</b></li>` : "");
 
   const entries = Object.entries(now.alerts_by_subtype || {})
     .map(([k, v]) => [alertLabel(k), v, k])
@@ -872,7 +1043,7 @@ function renderNow(now) {
   entries.sort((x, y) => ORDER.indexOf(alertKind(x[2])[1]) - ORDER.indexOf(alertKind(y[2])[1]) || y[1] - x[1]);
   $("#alerts-now").innerHTML = entries.length
     ? entries.map(([label, v, k]) => `<li>${iconHtml(k)}<span class="lbl">${esc(label)}</span><span class="n">${v}</span></li>`).join("")
-    : `<li class="empty">Nenhum alerta ativo no momento.</li>`;
+    : `<li class="empty">${T("Nenhum alerta ativo no momento.", "No active alerts right now.")}</li>`;
   return { dow, loc };
 }
 
@@ -881,15 +1052,15 @@ function renderToday(hourly, week, dow, today) {
   const byHour = Object.fromEntries(todayRows.map(r => [+r.hour.slice(11, 13), r.avg_km_heavy]));
   const normal = Array(24).fill(null);
   week.filter(r => r.weekday === dow).forEach(r => normal[r.hour] = r.avg_km_heavy);
-  const labels = [...Array(24).keys()].map(h => `${h}h`);
-  $("#normal-label").textContent = `Normal para ${dow === 0 || dow === 6 ? "um" : "uma"} ${DAYS_FULL[dow]}`;
+  const labels = [...Array(24).keys()].map(hr);
+  $("#normal-label").textContent = T(`Normal para ${dow === 0 || dow === 6 ? "um" : "uma"} ${DAYS_FULL[dow]}`, `Typical ${DAYS_FULL[dow]}`);
   draw("chart-today", {
     type: "line",
     data: {
       labels,
       datasets: [
-        { label: "Normal", data: normal, borderColor: css("--normal"), borderDash: [5, 4], borderWidth: 2, pointRadius: 0, tension: .3, spanGaps: true },
-        { label: "Hoje", data: labels.map((_, h) => byHour[h] ?? null), borderColor: css("--uel"), borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5, tension: .3,
+        { label: T("Normal", "Typical"), data: normal, borderColor: css("--normal"), borderDash: [5, 4], borderWidth: 2, pointRadius: 0, tension: .3, spanGaps: true },
+        { label: T("Hoje", "Today"), data: labels.map((_, h) => byHour[h] ?? null), borderColor: css("--uel"), borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5, tension: .3,
           backgroundColor: css("--uel-soft"), fill: false },
       ],
     },
@@ -936,31 +1107,32 @@ async function loadQuando() {
   const ctx = window.__nowCtx;
   // segunda a domingo (quem trabalha lê a semana assim)
   const order = [1, 2, 3, 4, 5, 6, 0];
-  let html = `<span></span>` + [...Array(24).keys()].map(h => `<span class="hl">${h % 3 === 0 ? h + "h" : ""}</span>`).join("");
+  let html = `<span></span>` + [...Array(24).keys()].map(h => `<span class="hl">${h % 3 === 0 ? (EN ? h : h + "h") : ""}</span>`).join("");
   for (const d of order) {
     html += `<span class="dl">${DAYS_SHORT[d]}</span>`;
     for (let h = 0; h < 24; h++) {
       const r = cell[`${d}-${h}`];
       const isNow = ctx && ctx.dow === d && ctx.loc.h === h;
       html += r
-        ? `<button class="c${isNow ? " today" : ""}" data-d="${d}" data-h="${h}" style="background:${ramp[step(r.avg_km_heavy)]}" aria-label="${DAYS_FULL[d]}, ${h}h: ${nf(r.avg_km_heavy)} km em trânsito pesado"></button>`
-        : `<span class="c nodata" aria-label="${DAYS_FULL[d]}, ${h}h: sem dados"></span>`;
+        ? `<button class="c${isNow ? " today" : ""}" data-d="${d}" data-h="${h}" style="background:${ramp[step(r.avg_km_heavy)]}" aria-label="${DAYS_FULL[d]}, ${hr(h)}: ${nf(r.avg_km_heavy)} km ${T("em trânsito pesado", "in heavy traffic")}"></button>`
+        : `<span class="c nodata" aria-label="${DAYS_FULL[d]}, ${hr(h)}: ${T("sem dados", "no data")}"></span>`;
     }
   }
   $("#heat").innerHTML = html;
-  $("#ramp").innerHTML = `<span>Menos</span><span class="bar">${ramp.map(c => `<i style="background:${c}"></i>`).join("")}</span><span>Mais trânsito pesado</span>`;
+  $("#ramp").innerHTML = `<span>${T("Menos", "Less")}</span><span class="bar">${ramp.map(c => `<i style="background:${c}"></i>`).join("")}</span><span>${T("Mais trânsito pesado", "More heavy traffic")}</span>`;
   const tip = (d, h) => {
     const r = cell[`${d}-${h}`]; if (!r) return;
     const avgDay = week.filter(x => x.weekday === d);
     const mean = avgDay.reduce((a, b) => a + b.avg_km_heavy, 0) / (avgDay.length || 1);
     const rel = mean ? r.avg_km_heavy / mean : 1;
-    const word = rel > 1.6 ? "um dos horários mais carregados" : rel > 1.1 ? "acima da média do dia" : rel > .6 ? "perto da média do dia" : "um horário tranquilo";
-    $("#heat-tip").innerHTML = `<b>${DAYS_FULL[d][0].toUpperCase() + DAYS_FULL[d].slice(1)}, ${h}h:</b> em média ${nf(r.avg_km_heavy)} km em trânsito pesado, ${word}. <span class="note">(${r.days} ${r.days === 1 ? "dia" : "dias"} de dados)</span>`;
+    const word = rel > 1.6 ? T("um dos horários mais carregados", "one of the busiest times") : rel > 1.1 ? T("acima da média do dia", "above the day's average") : rel > .6 ? T("perto da média do dia", "close to the day's average") : T("um horário tranquilo", "a quiet time");
+    $("#heat-tip").innerHTML = T(`<b>${DAYS_FULL[d][0].toUpperCase() + DAYS_FULL[d].slice(1)}, ${hr(h)}:</b> em média ${nf(r.avg_km_heavy)} km em trânsito pesado, ${word}. <span class="note">(${r.days} ${r.days === 1 ? "dia" : "dias"} de dados)</span>`,
+      `<b>${DAYS_FULL[d]}, ${hr(h)}:</b> on average ${nf(r.avg_km_heavy)} km in heavy traffic, ${word}. <span class="note">(${r.days} ${r.days === 1 ? "day" : "days"} of data)</span>`);
   };
   $("#heat").onclick = e => { const b = e.target.closest("button.c"); if (b) tip(+b.dataset.d, +b.dataset.h); };
   $("#heat").onmouseover = e => { const b = e.target.closest("button.c"); if (b) tip(+b.dataset.d, +b.dataset.h); };
   $("#heat").onfocusin = e => { const b = e.target.closest("button.c"); if (b) tip(+b.dataset.d, +b.dataset.h); };
-  if (ctx) tip(ctx.dow, ctx.loc.h); else $("#heat-tip").textContent = "Passe o mouse ou toque num quadrado.";
+  if (ctx) tip(ctx.dow, ctx.loc.h); else $("#heat-tip").textContent = T("Passe o mouse ou toque num quadrado.", "Hover over or tap a square.");
 
   // seletor de dia
   const start = ctx ? ctx.dow : 1;
@@ -970,26 +1142,28 @@ async function loadQuando() {
     const rows = Array(24).fill(null); week.filter(r => r.weekday === d).forEach(r => rows[r.hour] = r.avg_km_heavy);
     const valid = rows.map((v, h) => [v, h]).filter(([v]) => v != null);
     const day = valid.filter(([, h]) => h >= 6 && h <= 21);
-    let advice = "Ainda não há dados suficientes para este dia.";
+    let advice = T("Ainda não há dados suficientes para este dia.", "There isn't enough data for this day yet.");
     if (day.length) {
       const worst = day.reduce((a, b) => b[0] > a[0] ? b : a);
       const near = valid.filter(([, h]) => h !== worst[1] && Math.abs(h - worst[1]) <= 2);
       const best = near.length ? near.reduce((a, b) => b[0] < a[0] ? b : a) : null;
       const pct = best && worst[0] ? (1 - best[0] / worst[0]) * 100 : 0;
-      advice = `${dow2(d)}, o pior horário costuma ser <b>${worst[1]}h</b>.`;
-      if (best && pct >= 15) advice += ` ${best[1] < worst[1] ? "Antecipando" : "Adiando"} a saída para <b>${best[1]}h</b>, você encontra ${pct >= 85 ? "<b>bem menos</b>" : `cerca de <b>${nf(pct, 0)}% menos</b>`} trânsito pesado.`;
+      advice = T(`${dow2(d)}, o pior horário costuma ser <b>${hr(worst[1])}</b>.`, `On ${DAYS_FULL[d]}s, the worst time is usually <b>${hr(worst[1])}</b>.`);
+      if (best && pct >= 15) advice += EN
+        ? ` ${best[1] < worst[1] ? "Leaving earlier" : "Leaving later"}, at <b>${hr(best[1])}</b>, you'll find ${pct >= 85 ? "<b>much less</b>" : `about <b>${nf(pct, 0)}% less</b>`} heavy traffic.`
+        : ` ${best[1] < worst[1] ? "Antecipando" : "Adiando"} a saída para <b>${hr(best[1])}</b>, você encontra ${pct >= 85 ? "<b>bem menos</b>" : `cerca de <b>${nf(pct, 0)}% menos</b>`} trânsito pesado.`;
     }
     $("#advice").innerHTML = advice;
     const maxH = valid.length ? valid.reduce((a, b) => b[0] > a[0] ? b : a)[1] : -1;
     draw("chart-day", {
       type: "bar",
-      data: { labels: [...Array(24).keys()].map(h => `${h}h`), datasets: [{
-        label: "Trânsito pesado", data: rows,
+      data: { labels: [...Array(24).keys()].map(hr), datasets: [{
+        label: T("Trânsito pesado", "Heavy traffic"), data: rows,
         backgroundColor: rows.map((v, h) => h === maxH ? levelColor(4) : css("--l2")),
         borderRadius: { topLeft: 4, topRight: 4 }, borderSkipped: "bottom", categoryPercentage: .86, barPercentage: .92,
       }] },
       options: baseOpts({
-        plugins: Object.assign(baseOpts().plugins, { tooltip: Object.assign(baseOpts().plugins.tooltip, { callbacks: { label: c => `${nf(c.raw)} km em trânsito pesado` } }) }),
+        plugins: Object.assign(baseOpts().plugins, { tooltip: Object.assign(baseOpts().plugins.tooltip, { callbacks: { label: c => `${nf(c.raw)} km ${T("em trânsito pesado", "in heavy traffic")}` } }) }),
         scales: Object.assign(baseOpts().scales, { y: Object.assign(baseOpts().scales.y, { ticks: Object.assign(baseOpts().scales.y.ticks, { callback: v => nf(v, 0) + " km" }) }) }),
       }),
     });
@@ -1000,7 +1174,7 @@ async function loadQuando() {
 
 // ------------------------------------------------------------ RUAS
 async function loadRuas(days = 7) {
-  $("#streets").innerHTML = `<li class="empty">Carregando…</li>`;
+  $("#streets").innerHTML = `<li class="empty">${T("Carregando…", "Loading…")}</li>`;
   const [streets, inter, alerts] = await Promise.all([
     get(`/public/streets?days=${days}&limit=15`), get("/public/interdicoes"), get(`/public/alerts?days=${days}`),
   ]);
@@ -1008,19 +1182,19 @@ async function loadRuas(days = 7) {
   $("#streets").innerHTML = streets.length ? streets.map(s => `
     <li>
       <span class="name">${esc(s.street)}</span>
-      <span class="val">${hhmm(s.heavy_hours_per_day)}/dia</span>
+      <span class="val">${hhmm(s.heavy_hours_per_day)}${T("/dia", "/day")}</span>
       <span class="track" aria-hidden="true"><i style="width:${(s.heavy_hours_per_day / max * 100).toFixed(1)}%"></i></span>
-      <span class="meta">Pior por volta das ${s.peak_hour ?? "–"}h · ${s.avg_speed_kmh ? nf(s.avg_speed_kmh, 0) + " km/h quando lenta" : ""}${s.avg_delay_min ? ` · +${nf(s.avg_delay_min, 0)} min de atraso típico` : ""}</span>
-    </li>`).join("") : `<li class="empty">Sem dados suficientes no período.</li>`;
+      <span class="meta">${T("Pior por volta das", "Worst around")} ${s.peak_hour != null ? hr(s.peak_hour) : "–"} · ${s.avg_speed_kmh ? nf(s.avg_speed_kmh, 0) + T(" km/h quando lenta", " km/h when slow") : ""}${s.avg_delay_min ? ` · +${nf(s.avg_delay_min, 0)} ${T("min de atraso típico", "min typical delay")}` : ""}</span>
+    </li>`).join("") : `<li class="empty">${T("Sem dados suficientes no período.", "Not enough data for this period.")}</li>`;
   $("#interdicoes").innerHTML = inter.length ? inter.map(i => {
     const p = i.since_local ? localParts(i.since_local) : null;
-    return `<tr><td>${esc(i.street)}</td><td class="r">${p ? `${String(p.d).padStart(2, "0")}/${String(p.mo).padStart(2, "0")}` : "–"}</td></tr>`;
-  }).join("") : `<tr><td colspan="2" class="empty">Nenhuma interdição longa agora.</td></tr>`;
+    return `<tr><td>${esc(i.street)}</td><td class="r">${p ? dm(p.d, p.mo) : "–"}</td></tr>`;
+  }).join("") : `<tr><td colspan="2" class="empty">${T("Nenhuma interdição longa agora.", "No long closures right now.")}</td></tr>`;
   $("#potholes").innerHTML = alerts.top_potholes.length
     ? alerts.top_potholes.map(a => `<tr><td>${esc(a.street)}</td><td class="r">${a.total}</td></tr>`).join("")
-    : `<tr><td colspan="2" class="empty">Nenhum buraco relatado no período.</td></tr>`;
+    : `<tr><td colspan="2" class="empty">${T("Nenhum buraco relatado no período.", "No potholes reported in this period.")}</td></tr>`;
 }
-function hhmm(h) { const m = Math.round(h * 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`; }
+function hhmm(h) { const m = Math.round(h * 60); return m < 60 ? `${m} min` : EN ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`; }
 $("#streets-period").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   [...$("#streets-period").children].forEach(x => x.setAttribute("aria-pressed", x === b));
@@ -1032,7 +1206,7 @@ async function loadChuva() {
   const [meteoRes, hourly] = await Promise.allSettled([fetch(METEO).then(r => r.ok ? r.json() : Promise.reject(r.status)), get("/public/hourly?hours=720")]);
   const H = hourly.status === "fulfilled" ? hourly.value : [];
   if (meteoRes.status !== "fulfilled") {
-    $("#rain-sentence").textContent = "Não foi possível consultar a previsão de chuva agora.";
+    $("#rain-sentence").textContent = T("Não foi possível consultar a previsão de chuva agora.", "The rain forecast can't be reached right now.");
     return;
   }
   const m = meteoRes.value.hourly;
@@ -1045,26 +1219,28 @@ async function loadChuva() {
   // frase
   const wet = next.filter(r => r.mm >= 0.2);
   let sentence;
-  if (!wet.length) sentence = `<b>Sem chuva prevista</b> nas próximas 24 horas.`;
+  if (!wet.length) sentence = T(`<b>Sem chuva prevista</b> nas próximas 24 horas.`, `<b>No rain forecast</b> for the next 24 hours.`);
   else {
-    const first = wet[0], hFirst = +first.t.slice(11, 13), dayWord = first.t.slice(0, 10) === nowLocal.slice(0, 10) ? "hoje" : "amanhã";
+    const first = wet[0], hFirst = +first.t.slice(11, 13), isToday = first.t.slice(0, 10) === nowLocal.slice(0, 10);
     const peak = wet.reduce((a, b) => b.mm > a.mm ? b : a);
-    const intens = peak.mm >= 10 ? "forte" : peak.mm >= 2.5 ? "moderada" : "fraca";
+    const intens = peak.mm >= 10 ? T("forte", "Heavy") : peak.mm >= 2.5 ? T("moderada", "Moderate") : T("fraca", "Light");
     const rush = wet.some(r => { const h = +r.t.slice(11, 13); return (h >= 17 && h <= 19) || (h >= 7 && h <= 8); });
-    sentence = `Chuva <b>${intens}</b> prevista ${dayWord} a partir das <b>${hFirst}h</b>${rush ? ", no horário de pico. Espere mais lentidão e saia com folga." : "."}`;
+    sentence = EN
+      ? `<b>${intens}</b> rain expected ${isToday ? "today" : "tomorrow"} from <b>${hr(hFirst)}</b>${rush ? ", during rush hour. Expect more delays and leave with time to spare." : "."}`
+      : `Chuva <b>${intens}</b> prevista ${isToday ? "hoje" : "amanhã"} a partir das <b>${hr(hFirst)}</b>${rush ? ", no horário de pico. Espere mais lentidão e saia com folga." : "."}`;
   }
   $("#rain-sentence").innerHTML = sentence;
 
   const rainColor = css("--rain");
   draw("chart-forecast", {
     type: "bar",
-    data: { labels: next.map(r => r.t.slice(11, 13) + "h"), datasets: [{
-      label: "Chuva", data: next.map(r => r.mm), backgroundColor: rainColor,
+    data: { labels: next.map(r => hr(+r.t.slice(11, 13))), datasets: [{
+      label: T("Chuva", "Rain"), data: next.map(r => r.mm), backgroundColor: rainColor,
       borderRadius: { topLeft: 3, topRight: 3 }, borderSkipped: "bottom", categoryPercentage: .86, barPercentage: .92,
     }] },
     options: baseOpts({
       plugins: Object.assign(baseOpts().plugins, { tooltip: Object.assign(baseOpts().plugins.tooltip, { callbacks: {
-        label: c => `${nf(c.raw)} mm` + (next[c.dataIndex].p != null ? ` · ${next[c.dataIndex].p}% de chance` : ""),
+        label: c => `${nf(c.raw)} mm` + (next[c.dataIndex].p != null ? ` · ${next[c.dataIndex].p}% ${T("de chance", "chance")}` : ""),
       } }) }),
       scales: Object.assign(baseOpts().scales, { y: Object.assign(baseOpts().scales.y, { suggestedMax: 2, ticks: Object.assign(baseOpts().scales.y.ticks, { callback: v => nf(v, 0) + " mm" }) }) }),
     }),
@@ -1074,15 +1250,15 @@ async function loadChuva() {
   const start14 = rain[Math.max(0, idx - 14 * 24)]?.t;
   const timeline = rain.slice(Math.max(0, idx - 14 * 24), idx + 1).map(r => r.t);
   const traffic = Object.fromEntries(H.map(r => [r.hour, r]));
-  const labels = timeline.map(t => t.slice(11, 13) === "00" ? `${t.slice(8, 10)}/${t.slice(5, 7)}` : "");
+  const labels = timeline.map(t => t.slice(11, 13) === "00" ? dm(t.slice(8, 10), t.slice(5, 7)) : "");
   const rainByT = Object.fromEntries(rain.map(r => [r.t, r.mm]));
   const xOpts = (show) => Object.assign(baseOpts().scales.x, { ticks: Object.assign(baseOpts().scales.x.ticks, { display: show, autoSkip: false, callback: (v, i) => labels[i] }) });
-  const tipTitle = items => { const t = timeline[items[0].dataIndex]; return `${t.slice(8, 10)}/${t.slice(5, 7)} às ${t.slice(11, 13)}h`; };
+  const tipTitle = items => { const t = timeline[items[0].dataIndex]; return `${dm(t.slice(8, 10), t.slice(5, 7))} ${T("às", "at")} ${hr(+t.slice(11, 13))}`; };
   draw("chart-rain-hist", {
     type: "bar",
     data: { labels: timeline, datasets: [{ data: timeline.map(t => rainByT[t] ?? 0), backgroundColor: rainColor, barPercentage: 1, categoryPercentage: 1 }] },
     options: baseOpts({
-      plugins: Object.assign(baseOpts().plugins, { tooltip: Object.assign(baseOpts().plugins.tooltip, { callbacks: { title: tipTitle, label: c => `Chuva: ${nf(c.raw)} mm` } }) }),
+      plugins: Object.assign(baseOpts().plugins, { tooltip: Object.assign(baseOpts().plugins.tooltip, { callbacks: { title: tipTitle, label: c => `${T("Chuva", "Rain")}: ${nf(c.raw)} mm` } }) }),
       scales: { x: xOpts(false), y: Object.assign(baseOpts().scales.y, { suggestedMax: 2, ticks: Object.assign(baseOpts().scales.y.ticks, { maxTicksLimit: 3, callback: v => nf(v, 0) + " mm" }) }) },
     }),
   });
@@ -1090,13 +1266,13 @@ async function loadChuva() {
   draw("chart-traffic-hist", {
     type: "line",
     data: { labels: timeline, datasets: [
-      { label: "Trânsito pesado", data: timeline.map(t => traffic[t]?.avg_km_heavy ?? null), borderColor: css("--l4"), borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4, tension: .2, spanGaps: false },
-      { label: "Alerta de alagamento", data: flood, showLine: false, pointRadius: 5, pointHoverRadius: 7, pointBackgroundColor: rainColor, pointBorderColor: css("--surface"), pointBorderWidth: 2 },
+      { label: T("Trânsito pesado", "Heavy traffic"), data: timeline.map(t => traffic[t]?.avg_km_heavy ?? null), borderColor: css("--l4"), borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4, tension: .2, spanGaps: false },
+      { label: T("Alerta de alagamento", "Flooding alert"), data: flood, showLine: false, pointRadius: 5, pointHoverRadius: 7, pointBackgroundColor: rainColor, pointBorderColor: css("--surface"), pointBorderWidth: 2 },
     ] },
     options: baseOpts({
       plugins: Object.assign(baseOpts().plugins, { tooltip: Object.assign(baseOpts().plugins.tooltip, { callbacks: {
         title: tipTitle,
-        label: c => c.raw == null ? null : c.datasetIndex === 0 ? `Trânsito pesado: ${nf(c.raw)} km` : `Alagamento: ${traffic[timeline[c.dataIndex]].flood_alerts} alerta(s)`,
+        label: c => c.raw == null ? null : c.datasetIndex === 0 ? `${T("Trânsito pesado", "Heavy traffic")}: ${nf(c.raw)} km` : `${T("Alagamento", "Flooding")}: ${traffic[timeline[c.dataIndex]].flood_alerts} ${T("alerta(s)", "alert(s)")}`,
       } }) }),
       scales: { x: xOpts(true), y: Object.assign(baseOpts().scales.y, { ticks: Object.assign(baseOpts().scales.y.ticks, { callback: v => nf(v, 0) + " km" }) }) },
     }),
@@ -1117,27 +1293,28 @@ async function loadChuva() {
     for (const w of p.wet) { wetSum += w; drySum += dryMean; nWet++; }
   }
   if (nWet < 3) {
-    $("#rain-compare").innerHTML = `<p class="empty">Choveu pouco nos últimos 30 dias em dias úteis (${nWet} ${nWet === 1 ? "hora" : "horas"} com chuva). Volte depois da próxima chuva.</p>`;
+    $("#rain-compare").innerHTML = `<p class="empty">${T(`Choveu pouco nos últimos 30 dias em dias úteis (${nWet} ${nWet === 1 ? "hora" : "horas"} com chuva). Volte depois da próxima chuva.`, `It rained little on weekdays in the last 30 days (${nWet} rainy ${nWet === 1 ? "hour" : "hours"}). Check back after the next rain.`)}</p>`;
   } else {
     const wetAvg = wetSum / nWet, dryAvg = drySum / nWet, diff = (wetAvg / dryAvg - 1) * 100;
     const mx = Math.max(wetAvg, dryAvg);
     $("#rain-compare").innerHTML = `
-      <p style="font-size:20px;margin:0 0 8px">Nas <b>${nWet} horas com chuva</b> em dias úteis, o trânsito pesado ficou <b>${nf(Math.abs(diff), 0)}% ${diff >= 0 ? "maior" : "menor"}</b> que no mesmo horário em dias secos.</p>
+      <p style="font-size:20px;margin:0 0 8px">${T(`Nas <b>${nWet} horas com chuva</b> em dias úteis, o trânsito pesado ficou <b>${nf(Math.abs(diff), 0)}% ${diff >= 0 ? "maior" : "menor"}</b> que no mesmo horário em dias secos.`,
+        `In the <b>${nWet} rainy hours</b> on weekdays, heavy traffic was <b>${nf(Math.abs(diff), 0)}% ${diff >= 0 ? "higher" : "lower"}</b> than at the same time on dry days.`)}</p>
       <div class="compare-bars">
-        <div class="cb-row"><span>Com chuva</span><span class="bar"><i style="width:${wetAvg / mx * 100}%;background:var(--rain)"></i></span><span class="v">${nf(wetAvg)} km</span></div>
-        <div class="cb-row"><span>Seco, mesmo horário</span><span class="bar"><i style="width:${dryAvg / mx * 100}%;background:var(--normal)"></i></span><span class="v">${nf(dryAvg)} km</span></div>
+        <div class="cb-row"><span>${T("Com chuva", "Rain")}</span><span class="bar"><i style="width:${wetAvg / mx * 100}%;background:var(--rain)"></i></span><span class="v">${nf(wetAvg)} km</span></div>
+        <div class="cb-row"><span>${T("Seco, mesmo horário", "Dry, same time")}</span><span class="bar"><i style="width:${dryAvg / mx * 100}%;background:var(--normal)"></i></span><span class="v">${nf(dryAvg)} km</span></div>
       </div>
-      <p class="note">Média de km em trânsito pesado. Amostra pequena e chuva de modelo: é um retrato do mês, não uma conclusão.</p>`;
+      <p class="note">${T("Média de km em trânsito pesado. Amostra pequena e chuva de modelo: é um retrato do mês, não uma conclusão.", "Average km in heavy traffic. Small sample and modelled rain: a snapshot of the month, not a conclusion.")}</p>`;
   }
 }
 
 // Camada histórica: chuva medida pelo IAPAR × série horária da API.
 const IAPAR_URL = qs.get("iapar") || "data/chuva-iapar.json";
 const BANDS = [
-  { k: "garoa", frase: "garoa", label: "Garoa (até 1 mm)", min: 0.01, max: 1 },
-  { k: "fraca", frase: "chuva fraca", label: "Fraca (1 a 5 mm)", min: 1.01, max: 5 },
-  { k: "moderada", frase: "chuva moderada", label: "Moderada (5 a 10 mm)", min: 5.01, max: 10 },
-  { k: "forte", frase: "chuva forte", label: "Forte (mais de 10 mm)", min: 10.01, max: Infinity },
+  { k: "garoa", frase: T("garoa", "drizzle"), label: T("Garoa (até 1 mm)", "Drizzle (up to 1 mm)"), min: 0.01, max: 1 },
+  { k: "fraca", frase: T("chuva fraca", "light rain"), label: T("Fraca (1 a 5 mm)", "Light (1 to 5 mm)"), min: 1.01, max: 5 },
+  { k: "moderada", frase: T("chuva moderada", "moderate rain"), label: T("Moderada (5 a 10 mm)", "Moderate (5 to 10 mm)"), min: 5.01, max: 10 },
+  { k: "forte", frase: T("chuva forte", "heavy rain"), label: T("Forte (mais de 10 mm)", "Heavy (over 10 mm)"), min: 10.01, max: Infinity },
 ];
 async function loadIapar() {
   const [iap, H] = await Promise.all([fetch(IAPAR_URL).then(r => r.ok ? r.json() : Promise.reject(r.status)), get("/public/hourly?hours=4800")]);
@@ -1150,8 +1327,9 @@ async function loadIapar() {
     mmBy[t.toISOString().slice(0, 13) + ":00"] = v;
   });
   const fim = new Date(t0 + (iap.mm.length - 1) * 3600e3).toISOString();
-  const fmt = iso => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
-  $("#iapar-sub").textContent = `Chuva do pluviômetro do IAPAR (Londrina, ${nf(iap.altitude_m, 0)} m) e trânsito do Waze, hora a hora, de ${fmt(iap.inicio)} a ${fmt(fim)} de ${iap.inicio.slice(0, 4)}.`;
+  const fmt = iso => dm(iso.slice(8, 10), iso.slice(5, 7));
+  $("#iapar-sub").textContent = T(`Chuva do pluviômetro do IAPAR (Londrina, ${nf(iap.altitude_m, 0)} m) e trânsito do Waze, hora a hora, de ${fmt(iap.inicio)} a ${fmt(fim)} de ${iap.inicio.slice(0, 4)}.`,
+    `Rain from the IAPAR gauge (Londrina, ${nf(iap.altitude_m, 0)} m) and Waze traffic, hour by hour, from ${fmt(iap.inicio)} to ${fmt(fim)} ${iap.inicio.slice(0, 4)}.`);
 
   const holidays = new Set(["2026-01-01","2026-02-16","2026-02-17","2026-04-03","2026-04-21","2026-05-01","2026-06-04","2026-09-07","2026-10-12","2026-11-02","2026-11-15","2026-11-20","2026-12-10","2026-12-25"]);
   const dayType = date => { const w = dowOf(date); return (w === 0 || w === 6 || holidays.has(date)) ? "fds" : "util"; };
@@ -1169,23 +1347,27 @@ async function loadIapar() {
   const maxAbs = Math.max(10, ...res.filter(r => r.diff != null).map(r => Math.abs(r.diff)));
   $("#iapar-bands").innerHTML = res.map(r => {
     const faded = r.n < 30 ? "opacity:.5" : "";
-    if (r.diff == null) return `<div class="cb-row" style="${faded}"><span>${r.label}</span><span class="note">sem dados</span><span class="v">–</span></div>`;
+    if (r.diff == null) return `<div class="cb-row" style="${faded}"><span>${r.label}</span><span class="note">${T("sem dados", "no data")}</span><span class="v">–</span></div>`;
     const w = Math.abs(r.diff) / maxAbs * 50;
     const bar = r.diff >= 0
       ? `<i style="margin-left:50%;width:${w}%;background:var(--l4)"></i>`
       : `<i style="margin-left:${50 - w}%;width:${w}%;background:var(--uel)"></i>`;
-    return `<div class="cb-row" style="${faded}"><span>${r.label}<br><span class="note" style="margin:0">${r.n} ${r.n === 1 ? "hora" : "horas"}</span></span><span class="bar" style="display:flex;background:linear-gradient(to right,transparent calc(50% - 1px),var(--ink-3) calc(50% - 1px),var(--ink-3) calc(50% + 1px),transparent calc(50% + 1px)),var(--rule)">${bar}</span><span class="v">${r.diff >= 0 ? "+" : "−"}${nf(Math.abs(r.diff), 0)}%</span></div>`;
+    return `<div class="cb-row" style="${faded}"><span>${r.label}<br><span class="note" style="margin:0">${r.n} ${r.n === 1 ? T("hora", "hour") : T("horas", "hours")}</span></span><span class="bar" style="display:flex;background:linear-gradient(to right,transparent calc(50% - 1px),var(--ink-3) calc(50% - 1px),var(--ink-3) calc(50% + 1px),transparent calc(50% + 1px)),var(--rule)">${bar}</span><span class="v">${r.diff >= 0 ? "+" : "−"}${nf(Math.abs(r.diff), 0)}%</span></div>`;
   }).join("");
   const fmax = Math.max(dryF, ...res.map(r => r.flood), 0.01);
-  $("#iapar-floods").innerHTML = [{ label: "Sem chuva", flood: dryF, n: dryFlood.length, dry: true }, ...res].map(r =>
+  $("#iapar-floods").innerHTML = [{ label: T("Sem chuva", "No rain"), flood: dryF, n: dryFlood.length, dry: true }, ...res].map(r =>
     `<div class="cb-row" style="${r.n < 30 ? "opacity:.5" : ""}"><span>${r.label}</span><span class="bar"><i style="width:${r.flood / fmax * 100}%;background:${r.dry ? "var(--normal)" : "var(--rain)"}"></i></span><span class="v">${nf(r.flood, 2)}</span></div>`).join("");
 
   // frase-resumo, só com faixas de amostra suficiente
   const ok = res.filter(r => r.n >= 30 && r.diff != null);
-  const desc = r => `${Math.abs(r.diff) < 5 ? "praticamente igual ao" : `${nf(Math.abs(r.diff), 0)}% ${r.diff > 0 ? "acima" : "abaixo"}`}`;
+  const desc = r => EN
+    ? (Math.abs(r.diff) < 5 ? "about the same as" : `${nf(Math.abs(r.diff), 0)}% ${r.diff > 0 ? "above" : "below"}`)
+    : (Math.abs(r.diff) < 5 ? "praticamente igual ao" : `${nf(Math.abs(r.diff), 0)}% ${r.diff > 0 ? "acima" : "abaixo"}`);
   $("#iapar-sentence").innerHTML = ok.length
-    ? ok.map((r, i) => `${i === 0 ? "Com" : "com"} <b>${r.frase}</b>, o trânsito pesado ficou <b>${desc(r)}</b> do tempo seco no mesmo horário`).join("; ") + "."
-    : "Ainda há poucas horas de chuva com coleta do Waze para comparar.";
+    ? (EN
+      ? ok.map((r, i) => `${i === 0 ? "With" : "with"} <b>${r.frase}</b>, heavy traffic was <b>${desc(r)}</b> dry weather at the same time`).join("; ") + "."
+      : ok.map((r, i) => `${i === 0 ? "Com" : "com"} <b>${r.frase}</b>, o trânsito pesado ficou <b>${desc(r)}</b> do tempo seco no mesmo horário`).join("; ") + ".")
+    : T("Ainda há poucas horas de chuva com coleta do Waze para comparar.", "There are still too few rainy hours with Waze data to compare.");
 
   // chuva diária
   const daily = {};
@@ -1196,9 +1378,9 @@ async function loadIapar() {
     data: { labels: days, datasets: [{ data: days.map(d => +daily[d].toFixed(1)), backgroundColor: css("--rain"), barPercentage: 1, categoryPercentage: .9 }] },
     options: baseOpts({
       plugins: Object.assign(baseOpts().plugins, { tooltip: Object.assign(baseOpts().plugins.tooltip, { callbacks: {
-        title: it => `${days[it[0].dataIndex].slice(8, 10)}/${days[it[0].dataIndex].slice(5, 7)}`, label: c => `${nf(c.raw)} mm no dia` } }) }),
+        title: it => dm(days[it[0].dataIndex].slice(8, 10), days[it[0].dataIndex].slice(5, 7)), label: c => `${nf(c.raw)} mm ${T("no dia", "that day")}` } }) }),
       scales: {
-        x: Object.assign(baseOpts().scales.x, { ticks: Object.assign(baseOpts().scales.x.ticks, { autoSkip: false, callback: (v, i) => days[i].endsWith("-01") ? `${["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][+days[i].slice(5, 7) - 1]}` : "" }) }),
+        x: Object.assign(baseOpts().scales.x, { ticks: Object.assign(baseOpts().scales.x.ticks, { autoSkip: false, callback: (v, i) => days[i].endsWith("-01") ? MONTHS_SHORT[+days[i].slice(5, 7) - 1] : "" }) }),
         y: Object.assign(baseOpts().scales.y, { ticks: Object.assign(baseOpts().scales.y.ticks, { maxTicksLimit: 4, callback: v => nf(v, 0) + " mm" }) }),
       },
     }),
@@ -1212,7 +1394,7 @@ async function loadSobre() {
 }
 
 // ------------------------------------------------------------ início
-const loaders = { agora: loadNow, quando: loadQuando, ruas: () => loadRuas(7), chuva: () => { loadIapar().catch(e => { console.error(e); $("#iapar-sentence").textContent = "Não foi possível carregar a série do IAPAR agora."; }); return loadChuva(); }, sobre: loadSobre };
+const loaders = { agora: loadNow, quando: loadQuando, ruas: () => loadRuas(7), chuva: () => { loadIapar().catch(e => { console.error(e); $("#iapar-sentence").textContent = T("Não foi possível carregar a série do IAPAR agora.", "The IAPAR series can't be loaded right now."); }); return loadChuva(); }, sobre: loadSobre };
 const first = (location.hash || "#agora").slice(1);
 loaded.agora = true;
 loadNow().catch(handleErr).finally(() => { if (first !== "agora") openTab(tabs.some(t => t.getAttribute("aria-controls") === first) ? first : "agora", false); });
