@@ -168,8 +168,8 @@ h3 { font-size: 19px; margin: 0 0 4px; font-weight: 700; }
 
 /* ---------- Agora ---------- */
 .now-layout { display: grid; gap: 20px; grid-template-columns: 1fr; }
-@media (min-width: 980px) { .now-layout { grid-template-columns: minmax(340px, 5fr) 7fr; align-items: stretch; } }
-.map-col { display: flex; flex-direction: column; min-width: 0; }
+@media (min-width: 980px) { .now-layout { grid-template-columns: minmax(340px, 5fr) 7fr; align-items: start; } }
+.map-col { min-width: 0; }
 .headline {
   font-size: clamp(28px, 3.6vw, 44px); line-height: 1.12; font-weight: 300;
   letter-spacing: -0.02em; margin: 0 0 14px;
@@ -195,8 +195,8 @@ h3 { font-size: 19px; margin: 0 0 4px; font-weight: 700; }
 .sw.line { height: 4px; width: 18px; border-radius: 2px; }
 .sw.dash { height: 0; width: 18px; border-top: 3px dashed var(--blocked); border-radius: 0; }
 
-#map { flex: 1; min-height: 480px; border-radius: var(--radius-lg); border: 1px solid var(--rule); background: var(--rule); }
-@media (max-width: 979px) { #map { flex: none; height: 380px; min-height: 0; } }
+#map { height: 460px; border-radius: var(--radius-lg); border: 1px solid var(--rule); background: var(--rule); }
+@media (max-width: 979px) { #map { height: 380px; } }
 .leaflet-container { font-family: inherit; }
 /* mapa de fundo mais apagado, para os congestionamentos se destacarem */
 .osm-tiles { filter: grayscale(.85) contrast(.9) brightness(1.04); }
@@ -222,12 +222,16 @@ h3 { font-size: 19px; margin: 0 0 4px; font-weight: 700; }
 .map-legend label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .map-legend input { width: 16px; height: 16px; accent-color: var(--uel); margin: 0; }
 
-.alert-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.alert-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
-.alert-list li:last-child { border-bottom: 0; }
-.alert-list .n { font-weight: 700; }
-.more-btn { appearance: none; border: 0; background: none; padding: 4px 0; font: inherit; font-size: 15px; color: var(--uel); font-weight: 600; cursor: pointer; }
-.more-btn:hover { text-decoration: underline; }
+.alert-grid { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+@media (max-width: 599px) {
+  .alert-grid { grid-template-columns: 1fr; gap: 6px; }
+  .alert-grid li { gap: 10px; padding: 6px 10px; }
+  .alert-grid .n { font-size: 17px; }
+}
+.alert-grid li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--paper); min-width: 0; }
+.alert-grid .lbl { flex: 1; min-width: 0; font-size: 15px; line-height: 1.25; overflow-wrap: anywhere; }
+.alert-grid .n { font-weight: 750; font-size: 20px; padding-left: 4px; }
+.alert-grid li.empty { border-style: dashed; }
 .empty { color: var(--ink-3); font-size: 15px; }
 
 .chart-box { position: relative; height: 260px; }
@@ -364,16 +368,17 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
         <div class="levelbar" id="levelbar" role="img" aria-label=""></div>
         <ul class="levelkey" id="levelkey"></ul>
 
-        <div style="margin-top:28px">
-          <h3>Alertas de motoristas agora</h3>
-          <p class="note" style="margin:0 0 6px">Relatos enviados por usuários do Waze ainda ativos.</p>
-          <ul class="alert-list" id="alerts-now"></ul>
-        </div>
       </div>
       <div class="map-col">
         <div id="map" role="region" aria-label="Mapa dos congestionamentos agora"></div>
         <div class="map-legend" id="map-legend"></div>
       </div>
+    </div>
+
+    <div class="block" style="margin-top:24px">
+      <h3>Alertas de motoristas agora</h3>
+      <p class="note" style="margin:0">Relatos enviados por usuários do Waze ainda ativos. Primeiro o que afeta o trânsito; buracos por último.</p>
+      <ul class="alert-grid" id="alerts-now"></ul>
     </div>
 
     <div class="block" style="margin-top:24px">
@@ -734,6 +739,7 @@ function initMap() {
   }).addTo(map);
   jamLayer = L.layerGroup().addTo(map);
   alertLayer = L.layerGroup().addTo(map);
+  if ("ResizeObserver" in window) new ResizeObserver(() => map.invalidateSize()).observe($("#map"));
   const groupIcon = { agua: "HAZARD_WEATHER_FLOOD", acidente: "ACCIDENT", bloqueio: "ROAD_CLOSED", perigo: "HAZARD", relato: "JAM" };
   $("#map-legend").innerHTML =
     LEVELS.map(l => `<span><i class="sw line" style="background:var(--l${l.n})"></i>${l.name}</span>`).join("") +
@@ -855,17 +861,12 @@ function renderNow(now) {
     .map(([k, v]) => [alertLabel(k), v, k])
     .reduce((acc, [label, v, k]) => { const e = acc.find(a => a[0] === label); e ? e[1] += v : acc.push([label, v, k]); return acc; }, [])
     .sort((a, b) => b[1] - a[1]);
-  // mostra os 5 tipos mais frequentes; o resto fica atrás de um botão
-  const TOP = 5, expanded = $("#alerts-now").dataset.expanded === "1";
-  const shown = expanded ? entries : entries.slice(0, TOP);
+  // ordem: o que afeta o trânsito primeiro, depois por quantidade
+  const ORDER = ["acidente", "agua", "bloqueio", "relato", "perigo", "buraco"];
+  entries.sort((x, y) => ORDER.indexOf(alertKind(x[2])[1]) - ORDER.indexOf(alertKind(y[2])[1]) || y[1] - x[1]);
   $("#alerts-now").innerHTML = entries.length
-    ? shown.map(([label, v, k]) => `<li><span style="display:inline-flex;align-items:center;gap:10px">${iconHtml(k, "mini")}${esc(label)}</span><span class="n">${v}</span></li>`).join("")
-      + (entries.length > TOP ? `<li><button class="more-btn" id="alerts-more" aria-expanded="${expanded}">${expanded ? "Mostrar menos" : `Mostrar mais ${entries.length - TOP} ${entries.length - TOP === 1 ? "tipo" : "tipos"}`}</button></li>` : "")
+    ? entries.map(([label, v, k]) => `<li>${iconHtml(k)}<span class="lbl">${esc(label)}</span><span class="n">${v}</span></li>`).join("")
     : `<li class="empty">Nenhum alerta ativo no momento.</li>`;
-  $("#alerts-more")?.addEventListener("click", () => {
-    $("#alerts-now").dataset.expanded = expanded ? "0" : "1";
-    renderNow(now);
-  });
   return { dow, loc };
 }
 
