@@ -226,6 +226,8 @@ h3 { font-size: 19px; margin: 0 0 4px; font-weight: 700; }
 .alert-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
 .alert-list li:last-child { border-bottom: 0; }
 .alert-list .n { font-weight: 700; }
+.more-btn { appearance: none; border: 0; background: none; padding: 4px 0; font: inherit; font-size: 15px; color: var(--uel); font-weight: 600; cursor: pointer; }
+.more-btn:hover { text-decoration: underline; }
 .empty { color: var(--ink-3); font-size: 15px; }
 
 .chart-box { position: relative; height: 260px; }
@@ -853,9 +855,17 @@ function renderNow(now) {
     .map(([k, v]) => [alertLabel(k), v, k])
     .reduce((acc, [label, v, k]) => { const e = acc.find(a => a[0] === label); e ? e[1] += v : acc.push([label, v, k]); return acc; }, [])
     .sort((a, b) => b[1] - a[1]);
+  // mostra os 5 tipos mais frequentes; o resto fica atrás de um botão
+  const TOP = 5, expanded = $("#alerts-now").dataset.expanded === "1";
+  const shown = expanded ? entries : entries.slice(0, TOP);
   $("#alerts-now").innerHTML = entries.length
-    ? entries.map(([label, v, k]) => `<li><span style="display:inline-flex;align-items:center;gap:10px">${iconHtml(k, "mini")}${esc(label)}</span><span class="n">${v}</span></li>`).join("")
+    ? shown.map(([label, v, k]) => `<li><span style="display:inline-flex;align-items:center;gap:10px">${iconHtml(k, "mini")}${esc(label)}</span><span class="n">${v}</span></li>`).join("")
+      + (entries.length > TOP ? `<li><button class="more-btn" id="alerts-more" aria-expanded="${expanded}">${expanded ? "Mostrar menos" : `Mostrar mais ${entries.length - TOP} ${entries.length - TOP === 1 ? "tipo" : "tipos"}`}</button></li>` : "")
     : `<li class="empty">Nenhum alerta ativo no momento.</li>`;
+  $("#alerts-more")?.addEventListener("click", () => {
+    $("#alerts-now").dataset.expanded = expanded ? "0" : "1";
+    renderNow(now);
+  });
   return { dow, loc };
 }
 
