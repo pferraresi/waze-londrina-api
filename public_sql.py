@@ -22,6 +22,14 @@ TZ = "America/Sao_Paulo"
 EXCLUDED_STREETS = ["%Constantino Pialarissi%"]
 # Ruas fechadas para lazer aos domingos: o Waze registra como congestionamento.
 SUNDAY_LEISURE_STREETS = ["%Joaquim de Matos Barreto%", "%Bento Munhoz da Rocha%"]
+# Feriados: as ruas de lazer também fecham nesses dias (mesma regra do domingo).
+# Nacionais 2026 + carnaval (ponto facultativo) + aniversário de Londrina (10/12;
+# confirmar se é feriado municipal). Acrescentar 2027 quando chegar.
+HOLIDAYS = [
+    "2026-01-01", "2026-02-16", "2026-02-17", "2026-04-03", "2026-04-21",
+    "2026-05-01", "2026-06-04", "2026-09-07", "2026-10-12", "2026-11-02",
+    "2026-11-15", "2026-11-20", "2026-12-10", "2026-12-25",
+]
 # Nível 5 que dura mais que isso é tratado como interdição (não trânsito).
 N5_INTERDICTION_HOURS = 48
 
@@ -31,6 +39,7 @@ def default_params(**kw):
         "tz": TZ,
         "excl": EXCLUDED_STREETS,
         "leisure": SUNDAY_LEISURE_STREETS,
+        "holidays": HOLIDAYS,
         "n5h": N5_INTERDICTION_HOURS,
     }
     p.update(kw)
@@ -69,7 +78,8 @@ jall AS (
            (j.level = 5 AND j.uuid IN (SELECT uuid FROM long_n5)) AS interdicao,
            (j.street ILIKE ANY(%(excl)s::text[])
             OR (j.street ILIKE ANY(%(leisure)s::text[])
-                AND EXTRACT(DOW FROM j.ts_local) = 0)) AS fora
+                AND (EXTRACT(DOW FROM j.ts_local) = 0
+                     OR j.ts_local::date = ANY(%(holidays)s::date[])))) AS fora
     FROM j
 ),
 jf AS (
@@ -261,6 +271,62 @@ FROM jall ja
 WHERE ja.interdicao OR (ja.fora AND ja.level = 5)
 GROUP BY ja.street, ja.uuid
 ORDER BY since_local
+"""
+
+# Auditoria: por rua, como ela se comporta numa faixa de horário de um dia da
+# semana ("alvo", ex.: domingo 10–14 h) comparado com dias úteis no mesmo horário.
+# Usa jall (inclui ruas já excluídas, marcadas em `ja_excluida`) para mostrar
+# tudo. Ruas que viram lazer aos domingos aparecem com muito N5, velocidade ~0,
+# presença em quase todos os domingos e pouca ou nenhuma lentidão em dia útil.
+AUDIT_SLOT = BASE_CTE + """
+, slot AS (
+    SELECT s.collected_at, s.ts_local,
+           CASE WHEN EXTRACT(DOW FROM s.ts_local) = %(dow)s THEN 'alvo'
+                WHEN EXTRACT(DOW FROM s.ts_local) BETWEEN 1 AND 5
+                     AND NOT (s.ts_local::date = ANY(%(holidays)s::date[])) THEN 'util'
+           END AS grupo
+    FROM snaps s
+    WHERE EXTRACT(HOUR FROM s.ts_local) BETWEEN %(h1)s AND %(h2)s
+),
+n AS (
+    SELECT grupo, COUNT(*)::float AS n, COUNT(DISTINCT ts_local::date) AS dias
+    FROM slot WHERE grupo IS NOT NULL GROUP BY grupo
+),
+per AS (
+    SELECT ja.street, sl.grupo, ja.collected_at, ja.ts_local,
+           MAX(ja.level) AS lv, SUM(ja.length) AS len, AVG(ja.speed_kmh) AS spd,
+           BOOL_OR(ja.interdicao) AS interd, BOOL_OR(ja.fora) AS fora
+    FROM jall ja JOIN slot sl ON sl.collected_at = ja.collected_at
+    WHERE sl.grupo IS NOT NULL
+    GROUP BY ja.street, sl.grupo, ja.collected_at, ja.ts_local
+),
+closed AS (
+    SELECT a.street, COUNT(DISTINCT a.uuid) AS road_closed_alerts
+    FROM alerts a
+    WHERE a.collected_at >= %(start)s AND a.collected_at <= %(end)s
+      AND a.type = 'ROAD_CLOSED'
+      AND EXTRACT(DOW FROM (a.collected_at AT TIME ZONE 'UTC') AT TIME ZONE %(tz)s) = %(dow)s
+    GROUP BY a.street
+)
+SELECT p.street,
+       ROUND((SUM(p.len) FILTER (WHERE p.grupo = 'alvo') / (SELECT n FROM n WHERE grupo = 'alvo') / 1000.0)::numeric, 3) AS alvo_km_medio,
+       ROUND((100.0 * COUNT(*) FILTER (WHERE p.grupo = 'alvo') / (SELECT n FROM n WHERE grupo = 'alvo'))::numeric, 1) AS alvo_pct_tempo_com_jam,
+       ROUND((100.0 * COUNT(*) FILTER (WHERE p.grupo = 'alvo' AND p.lv >= 4) / (SELECT n FROM n WHERE grupo = 'alvo'))::numeric, 1) AS alvo_pct_tempo_pesado,
+       ROUND((100.0 * COUNT(*) FILTER (WHERE p.grupo = 'alvo' AND p.lv = 5) / NULLIF(COUNT(*) FILTER (WHERE p.grupo = 'alvo'), 0))::numeric, 1) AS alvo_pct_n5_quando_lenta,
+       ROUND(AVG(p.spd) FILTER (WHERE p.grupo = 'alvo')::numeric, 1) AS alvo_vel_media,
+       COUNT(DISTINCT p.ts_local::date) FILTER (WHERE p.grupo = 'alvo') AS alvo_dias_com_jam,
+       (SELECT dias FROM n WHERE grupo = 'alvo') AS alvo_dias_total,
+       ROUND((100.0 * COUNT(*) FILTER (WHERE p.grupo = 'util') / NULLIF((SELECT n FROM n WHERE grupo = 'util'), 0))::numeric, 1) AS util_pct_tempo_com_jam,
+       ROUND((100.0 * COUNT(*) FILTER (WHERE p.grupo = 'util' AND p.lv >= 4) / NULLIF((SELECT n FROM n WHERE grupo = 'util'), 0))::numeric, 1) AS util_pct_tempo_pesado,
+       BOOL_OR(p.fora) AS ja_excluida,
+       BOOL_OR(p.interd) AS teve_interdicao_longa,
+       COALESCE(MAX(c.road_closed_alerts), 0) AS alertas_via_fechada_no_dia
+FROM per p
+LEFT JOIN closed c ON c.street = p.street
+GROUP BY p.street
+HAVING COUNT(*) FILTER (WHERE p.grupo = 'alvo') > 0
+ORDER BY alvo_km_medio DESC NULLS LAST
+LIMIT %(limit)s
 """
 
 INDEXES = [

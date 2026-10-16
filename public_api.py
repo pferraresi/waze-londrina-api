@@ -221,12 +221,26 @@ def interdicoes():
     return cached("interdicoes", 300, compute)
 
 
+@router.get("/audit/slot")
+def audit_slot(dow: int = Query(0, ge=0, le=6), h1: int = Query(10, ge=0, le=23),
+               h2: int = Query(14, ge=0, le=23), days: int = Query(56, ge=7, le=180),
+               limit: int = Query(30, le=100)):
+    """Auditoria por rua de uma faixa horária de um dia da semana (0 = domingo)
+    contra dias úteis no mesmo horário. Inclui ruas já excluídas (marcadas)."""
+    def compute():
+        last = latest_snapshot()
+        return query(Q.AUDIT_SLOT, P(start=last - timedelta(days=days), end=last,
+                                     dow=dow, h1=h1, h2=h2, limit=limit))
+    return cached(f"audit:{dow}:{h1}:{h2}:{days}:{limit}", 1800, compute)
+
+
 @router.get("/meta")
 def meta():
     """Regras de exclusão em vigor — exibidas na aba 'Sobre os dados'."""
     return {
         "excluded_streets": Q.EXCLUDED_STREETS,
         "sunday_leisure_streets": Q.SUNDAY_LEISURE_STREETS,
+        "holidays": Q.HOLIDAYS,
         "n5_interdiction_hours": Q.N5_INTERDICTION_HOURS,
         "timezone": Q.TZ,
     }
