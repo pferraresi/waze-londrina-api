@@ -23,13 +23,13 @@ app.add_middleware(
 )
 
 # Endpoints públicos (dashboard da comunidade) — ver public_api.py
-from public_api import router as public_router, ensure_indexes
+from public_api import router as public_router, start_summary_worker
 app.include_router(public_router)
 
 
 @app.on_event("startup")
-def _startup_indexes():
-    ensure_indexes()
+def _startup_summary():
+    start_summary_worker()
 
 def get_connection():
     database_url = os.getenv("DATABASE_URL")
