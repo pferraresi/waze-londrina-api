@@ -19,11 +19,21 @@ Nenhuma tabela nova, nenhuma mudança no coletor (`main.py`).
 3. Teste: abra `https://web-production-b07b0.up.railway.app/public/now` e `/docs`.
 4. O GitHub Pages publica o `index.html` novo em seguida.
 
-## Opcional: índices
+## Resumo por hora e índices (automático)
 
-As consultas usam `collected_at`. Para deixá-las mais rápidas, defina a variável
-`PUBLIC_API_CREATE_INDEXES=1` no serviço `web` do Railway. A API cria 3 índices na
-inicialização (ocupam por volta de 100–200 MB no volume de 5 GB do Postgres).
+Na inicialização, a API cria sozinha:
+
+- as tabelas `hour_summary` e `street_hour_summary` (alguns MB), com somas por hora
+  local. Série horária, semana típica, "normal" para agora e ruas críticas leem
+  delas, sem varrer a tabela `jams`;
+- dois índices BRIN em `collected_at` (poucos KB) e um índice parcial só das linhas
+  de nível 5 (interdições). São criados com `CONCURRENTLY`, sem travar o coletor.
+
+Uma thread da API recalcula a hora atual a cada 5 min e as últimas 72 h a cada 6 h
+(um N5 vira "interdição" só depois de 48 h). No primeiro deploy ela resume todo o
+histórico em blocos de 7 dias, do mais recente para o mais antigo. Os gráficos
+longos completam em alguns minutos. `PUBLIC_SUMMARY_WORKER=0` desliga a thread.
+A variável antiga `PUBLIC_API_CREATE_INDEXES` não é mais usada.
 
 ## Endpoints
 

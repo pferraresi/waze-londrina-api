@@ -3,9 +3,14 @@ Endpoints públicos do Observatório (/public/*), pensados para o dashboard
 voltado à comunidade. Métricas normalizadas por snapshot — ver public_sql.py.
 
 Para ativar, em api.py:
-    from public_api import router as public_router, ensure_indexes
+    from public_api import router as public_router, start_summary_worker
     app.include_router(public_router)
-    ensure_indexes()   # cria índices só se PUBLIC_API_CREATE_INDEXES=1
+    start_summary_worker()   # no startup: tabelas de resumo + recálculo periódico
+
+Os gráficos de período longo leem hour_summary / street_hour_summary (ver
+public_sql.py), mantidas por uma thread desta API. Assim o Postgres não
+varre a tabela jams inteira a cada visita, o que mantinha ~1 GB de dados em
+memória no Railway.
 """
 import json
 import os
@@ -62,26 +67,161 @@ def query(sql, params=None):
         conn.close()
 
 
-def ensure_indexes():
-    """Só cria índices se PUBLIC_API_CREATE_INDEXES=1 (ocupam ~100–200 MB)."""
-    if os.getenv("PUBLIC_API_CREATE_INDEXES") != "1":
-        return
-    try:
-        conn = psycopg2.connect(os.environ["DATABASE_URL"])
-        conn.autocommit = True
-        cur = conn.cursor()
-        for stmt in Q.INDEXES:
-            cur.execute(stmt)
-        conn.close()
-    except Exception as e:  # não derruba a API se faltar permissão
-        print(f"[public_api] índices não criados: {e}")
-
-
 def latest_snapshot():
     rows = query(Q.LATEST_SNAPSHOT)
     if not rows or not rows[0]["last"]:
+        rows = query(Q.LATEST_SNAPSHOT_ALL)   # coleta parada há mais de 2 dias
+    if not rows or not rows[0]["last"]:
         raise HTTPException(503, "Sem dados coletados ainda")
     return datetime.fromisoformat(rows[0]["last"])
+
+
+def latest_alert_snapshot():
+    rows = query(Q.LATEST_ALERT_SNAPSHOT)
+    if not rows or not rows[0]["last"]:
+        rows = query(Q.LATEST_ALERT_SNAPSHOT_ALL)
+    last = rows[0]["last"] if rows else None
+    return datetime.fromisoformat(last) if last else None
+
+
+def local_naive(ts_utc):
+    """Instante UTC (sem fuso) → hora local sem fuso, como em hour_summary."""
+    return to_local(ts_utc).replace(tzinfo=None)
+
+
+def window_local(last, delta):
+    return {"start_local": local_naive(last - delta), "end_local": local_naive(last)}
+
+
+# ---------------------------------------------------------------- resumo por hora
+
+LIGHT_EVERY_S = 300           # a cada 5 min: recalcula a hora atual e a anterior
+DEEP_EVERY_S = 6 * 3600       # a cada 6 h: recalcula as últimas 72 h (interdições)
+DEEP_HOURS = 72
+BACKFILL_CHUNK = timedelta(days=7)
+_ADVISORY_KEY = 37120         # trava no Postgres: um recálculo por vez
+
+
+def ensure_schema():
+    """Cria as tabelas de resumo e os índices pequenos (não bloqueia o coletor)."""
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    conn.autocommit = True
+    try:
+        cur = conn.cursor()
+        for stmt in Q.SUMMARY_DDL:
+            cur.execute(stmt)
+        for stmt in Q.INDEXES:
+            try:
+                cur.execute(stmt)
+            except Exception as e:
+                print(f"[resumo] índice não criado: {e}", flush=True)
+    finally:
+        conn.close()
+
+
+def refresh_range(start, end):
+    """Recalcula hour_summary e street_hour_summary para [start, end] (UTC).
+    start é arredondado para o início da hora. Uma transação: quem lê nunca
+    vê a janela vazia."""
+    start = start.replace(minute=0, second=0, microsecond=0)
+    params = P(start=start, end=end,
+               start_local=local_naive(start), end_local=local_naive(end))
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute("SELECT pg_try_advisory_xact_lock(%s)", (_ADVISORY_KEY,))
+            if not cur.fetchone()[0]:
+                return False          # outro processo já está recalculando
+            cur.execute(Q.REFRESH_DELETE_HOURS, params)
+            cur.execute(Q.REFRESH_DELETE_STREETS, params)
+            cur.execute(Q.REFRESH_HOURS, params)
+            cur.execute(Q.REFRESH_STREETS, params)
+        return True
+    finally:
+        conn.close()
+
+
+def _meta_get(key):
+    rows = query("SELECT value FROM summary_meta WHERE key = %(k)s", {"k": key})
+    return rows[0]["value"] if rows else None
+
+
+def _meta_set(key, value):
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute("""INSERT INTO summary_meta (key, value) VALUES (%s, %s)
+                           ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value""", (key, value))
+    finally:
+        conn.close()
+
+
+def backfill():
+    """Preenche o resumo com todo o histórico, do mais recente para o mais
+    antigo (os gráficos recentes ficam prontos primeiro). Retoma de onde parou."""
+    if _meta_get("backfill_done") == "1":
+        return
+    last = latest_snapshot()
+    first = datetime.fromisoformat(query(Q.OLDEST_SNAPSHOT)[0]["first"])
+    done_until = _meta_get("backfill_oldest")
+    end = datetime.fromisoformat(done_until) if done_until else last
+    while end > first:
+        start = max(first, end - BACKFILL_CHUNK).replace(minute=0, second=0, microsecond=0)
+        # a última hora do bloco anterior (início = end) é refeita inteira aqui
+        while not refresh_range(start, end):
+            time.sleep(30)
+        print(f"[resumo] histórico resumido desde {start:%Y-%m-%d %H:%M} UTC", flush=True)
+        _meta_set("backfill_oldest", start.isoformat())
+        end = start - timedelta(microseconds=1)
+    _meta_set("backfill_done", "1")
+    with _cache_lock:
+        _cache.clear()
+    print("[resumo] histórico completo", flush=True)
+
+
+def _summary_worker():
+    try:
+        ensure_schema()
+    except Exception as e:
+        print(f"[resumo] erro ao criar tabelas: {e}", flush=True)
+        return
+    last_deep = 0.0
+    backfilled = False
+    while True:
+        try:
+            if not backfilled:
+                # antes do histórico, garante as últimas 72 h para o painel
+                last = latest_snapshot()
+                refresh_range(last - timedelta(hours=DEEP_HOURS), last)
+                last_deep = time.time()
+                backfill()
+                backfilled = True
+            last = latest_snapshot()
+            if time.time() - last_deep >= DEEP_EVERY_S:
+                refresh_range(last - timedelta(hours=DEEP_HOURS), last)
+                last_deep = time.time()
+            else:
+                refresh_range(last - timedelta(hours=1), last)
+        except Exception as e:
+            print(f"[resumo] erro no recálculo: {e}", flush=True)
+        time.sleep(LIGHT_EVERY_S)
+
+
+_worker_started = False
+
+
+def start_summary_worker():
+    """Chamado no startup da API. PUBLIC_SUMMARY_WORKER=0 desliga."""
+    global _worker_started
+    if _worker_started or os.getenv("PUBLIC_SUMMARY_WORKER", "1") != "1":
+        return
+    _worker_started = True
+    threading.Thread(target=_summary_worker, name="resumo-horario", daemon=True).start()
+
+
+# compatibilidade com api.py antigo
+def ensure_indexes():
+    start_summary_worker()
 
 
 def to_local(ts_utc):
@@ -102,13 +242,13 @@ def now():
         last = latest_snapshot()
         summary = query(Q.NOW_SUMMARY, P(start=last, end=last))[0]
         loc = to_local(last)
-        typical = query(Q.TYPICAL_FOR_SLOT, P(
-            start=last - timedelta(days=28), end=last,
-            dow=loc.isoweekday() % 7, hour=loc.hour, today=loc.date()))[0]
-        a_last = query(Q.LATEST_ALERT_SNAPSHOT)[0]["last"]
+        typical = query(Q.TYPICAL_FOR_SLOT_S, {
+            **window_local(last, timedelta(days=28)),
+            "dow": loc.isoweekday() % 7, "hour": loc.hour, "today": loc.date()})[0]
+        a_last = latest_alert_snapshot()
         alerts = []
         if a_last:
-            alerts = query(Q.NOW_ALERTS, {"end": datetime.fromisoformat(a_last)})
+            alerts = query(Q.NOW_ALERTS, {"end": a_last})
         by_type = {}
         for a in alerts:
             key = a["subtype"] or a["type"]
@@ -150,9 +290,9 @@ def map_now():
                     "delay_s": r["delay"], "interdicao": r["interdicao"],
                 },
             })
-        a_last = query(Q.LATEST_ALERT_SNAPSHOT)[0]["last"]
+        a_last = latest_alert_snapshot()
         if a_last:
-            for a in query(Q.NOW_ALERTS, {"end": datetime.fromisoformat(a_last)}):
+            for a in query(Q.NOW_ALERTS, {"end": a_last}):
                 if a["location_x"] is None:
                     continue
                 feats.append({
@@ -172,7 +312,7 @@ def hourly(hours: int = Query(168, ge=1, le=4800)):
     Horas sem coleta não aparecem (lacunas ficam visíveis no gráfico)."""
     def compute():
         last = latest_snapshot()
-        return query(Q.HOURLY, P(start=last - timedelta(hours=hours), end=last))
+        return query(Q.HOURLY_S, window_local(last, timedelta(hours=hours)))
     return cached(f"hourly:{hours}", 3600 if hours > 720 else (600 if hours > 48 else 120), compute)
 
 
@@ -181,7 +321,7 @@ def typical_week(days: int = Query(28, ge=7, le=90)):
     """Semana típica: média de km em trânsito pesado por dia da semana × hora."""
     def compute():
         last = latest_snapshot()
-        return query(Q.TYPICAL_WEEK, P(start=last - timedelta(days=days), end=last))
+        return query(Q.TYPICAL_WEEK_S, window_local(last, timedelta(days=days)))
     return cached(f"week:{days}", 3600, compute)
 
 
@@ -192,8 +332,8 @@ def streets(days: int = Query(7, ge=1, le=60), limit: int = Query(15, le=50)):
     def compute():
         last = latest_snapshot()
         min_snaps = max(10, days * 5)  # evita vias com poucas observações
-        return query(Q.STREETS, P(start=last - timedelta(days=days), end=last,
-                                  min_snaps=min_snaps, limit=limit))
+        return query(Q.STREETS_S, {**window_local(last, timedelta(days=days)),
+                                   "min_snaps": min_snaps, "limit": limit})
     return cached(f"streets:{days}:{limit}", 1800, compute)
 
 

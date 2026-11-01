@@ -68,6 +68,7 @@ long_n5 AS (
     SELECT uuid
     FROM jams
     WHERE level = 5 AND uuid IS NOT NULL
+      AND uuid IN (SELECT uuid FROM j WHERE level = 5)
       AND collected_at >= %(start)s - interval '3 days'
       AND collected_at <= %(end)s
     GROUP BY uuid
@@ -87,8 +88,19 @@ jf AS (
 )
 """
 
-LATEST_SNAPSHOT = "SELECT MAX(collected_at) AS last FROM jams"
-LATEST_ALERT_SNAPSHOT = "SELECT MAX(collected_at) AS last FROM alerts"
+# Último snapshot. O filtro de 2 dias deixa o índice BRIN pular quase toda a
+# tabela; sem ele, MAX() lê o banco inteiro. Se a coleta parou há mais de 2
+# dias, a API usa as versões _ALL (lentas, mas só nesse caso).
+LATEST_SNAPSHOT = """
+SELECT MAX(collected_at) AS last FROM jams
+WHERE collected_at > (now() AT TIME ZONE 'UTC') - interval '2 days'
+"""
+LATEST_ALERT_SNAPSHOT = """
+SELECT MAX(collected_at) AS last FROM alerts
+WHERE collected_at > (now() AT TIME ZONE 'UTC') - interval '2 days'
+"""
+LATEST_SNAPSHOT_ALL = "SELECT MAX(collected_at) AS last FROM jams"
+LATEST_ALERT_SNAPSHOT_ALL = "SELECT MAX(collected_at) AS last FROM alerts"
 
 # Situação no último snapshot (start = end = último snapshot).
 NOW_SUMMARY = BASE_CTE + """
@@ -401,8 +413,193 @@ ORDER BY pct_tempo_com_jam DESC
 LIMIT 25
 """
 
-INDEXES = [
-    "CREATE INDEX IF NOT EXISTS idx_jams_collected_at ON jams (collected_at)",
-    "CREATE INDEX IF NOT EXISTS idx_jams_uuid_level ON jams (uuid, level)",
-    "CREATE INDEX IF NOT EXISTS idx_alerts_collected_at ON alerts (collected_at)",
+# ============================================================== resumo por hora
+# Os gráficos de período longo (série horária, semana típica, "normal" para
+# agora, ruas críticas) leem estas tabelas pequenas em vez de varrer `jams`.
+# Cada linha guarda SOMAS por hora local; as médias por snapshot saem de
+# soma / snaps, exatamente como nas consultas originais sobre `jams`.
+# A API recalcula as últimas horas a cada poucos minutos e as últimas 72 h a
+# cada 6 h (um N5 só vira "interdição" depois de 48 h; o recálculo corrige as
+# horas já resumidas).
+
+SUMMARY_DDL = [
+    """
+    CREATE TABLE IF NOT EXISTS hour_summary (
+        hour_local      timestamp PRIMARY KEY,   -- início da hora, America/Sao_Paulo
+        snaps           integer NOT NULL,        -- snapshots com algum jam nomeado
+        jams_sum        bigint  NOT NULL,
+        km_total_sum    double precision NOT NULL,
+        km_heavy_sum    double precision NOT NULL,
+        delay_min_sum   double precision NOT NULL,
+        flood_alerts    integer NOT NULL DEFAULT 0,
+        accident_alerts integer NOT NULL DEFAULT 0,
+        updated_at      timestamptz NOT NULL DEFAULT now()
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS street_hour_summary (
+        hour_local   timestamp NOT NULL,
+        street       text NOT NULL,
+        snaps_any    integer NOT NULL,           -- snapshots com jam na via
+        snaps_heavy  integer NOT NULL,           -- ... com N4/N5
+        delay_s_sum  double precision NOT NULL,  -- soma do atraso por snapshot
+        speed_sum    double precision NOT NULL,  -- soma da velocidade média por snapshot (N1–N4)
+        speed_n      integer NOT NULL,
+        PRIMARY KEY (hour_local, street)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS summary_meta (
+        key   text PRIMARY KEY,
+        value text
+    )
+    """,
 ]
+
+# Índices pequenos, criados sem bloquear o coletor (CONCURRENTLY).
+#  - BRIN em collected_at: poucos KB; deixa as consultas por janela de tempo
+#    lerem só o pedaço recente da tabela.
+#  - parcial em N5: só linhas de nível 5; serve às interdições.
+INDEXES = [
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS jams_collected_at_brin ON jams USING brin (collected_at)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS alerts_collected_at_brin ON alerts USING brin (collected_at)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS jams_n5_uuid ON jams (uuid, collected_at) WHERE level = 5",
+]
+
+# Recalcula as horas de [start, end]. start deve cair no início de uma hora;
+# start_local/end_local são os mesmos instantes em hora local.
+REFRESH_DELETE_HOURS = """
+DELETE FROM hour_summary WHERE hour_local >= %(start_local)s AND hour_local <= %(end_local)s
+"""
+REFRESH_DELETE_STREETS = """
+DELETE FROM street_hour_summary WHERE hour_local >= %(start_local)s AND hour_local <= %(end_local)s
+"""
+
+REFRESH_HOURS = BASE_CTE + """
+, per_snap AS (
+    SELECT s.collected_at,
+           date_trunc('hour', s.ts_local) AS hour_local,
+           COUNT(jf.*) FILTER (WHERE NOT jf.interdicao) AS jams,
+           COALESCE(SUM(jf.length) FILTER (WHERE NOT jf.interdicao), 0) / 1000.0 AS km_total,
+           COALESCE(SUM(jf.length) FILTER (WHERE jf.level >= 4 AND NOT jf.interdicao), 0) / 1000.0 AS km_heavy,
+           COALESCE(SUM(GREATEST(jf.delay, 0)) FILTER (WHERE NOT jf.interdicao), 0) / 60.0 AS delay_min
+    FROM snaps s
+    LEFT JOIN jf ON jf.collected_at = s.collected_at
+    GROUP BY s.collected_at, date_trunc('hour', s.ts_local)
+),
+alert_hours AS (
+    SELECT date_trunc('hour', (a.collected_at AT TIME ZONE 'UTC') AT TIME ZONE %(tz)s) AS hour_local,
+           COUNT(DISTINCT a.uuid) FILTER (WHERE a.subtype ILIKE 'HAZARD_WEATHER_FLOOD'
+                                            OR a.subtype ILIKE 'HAZARD_ON_ROAD_FLOOD') AS flood_alerts,
+           COUNT(DISTINCT a.uuid) FILTER (WHERE a.type = 'ACCIDENT') AS accident_alerts
+    FROM alerts a
+    WHERE a.collected_at >= %(start)s AND a.collected_at <= %(end)s
+    GROUP BY 1
+)
+INSERT INTO hour_summary (hour_local, snaps, jams_sum, km_total_sum, km_heavy_sum,
+                          delay_min_sum, flood_alerts, accident_alerts)
+SELECT p.hour_local, COUNT(*), SUM(p.jams), SUM(p.km_total), SUM(p.km_heavy), SUM(p.delay_min),
+       COALESCE(MAX(ah.flood_alerts), 0), COALESCE(MAX(ah.accident_alerts), 0)
+FROM per_snap p
+LEFT JOIN alert_hours ah ON ah.hour_local = p.hour_local
+GROUP BY p.hour_local
+"""
+
+REFRESH_STREETS = BASE_CTE + """
+, per_street_snap AS (
+    SELECT street, collected_at, date_trunc('hour', ts_local) AS hour_local,
+           MAX(level) AS max_level,
+           SUM(GREATEST(delay, 0)) AS delay_s,
+           AVG(speed_kmh) FILTER (WHERE level BETWEEN 1 AND 4) AS speed
+    FROM jf
+    WHERE NOT interdicao
+    GROUP BY street, collected_at, date_trunc('hour', ts_local)
+)
+INSERT INTO street_hour_summary (hour_local, street, snaps_any, snaps_heavy,
+                                 delay_s_sum, speed_sum, speed_n)
+SELECT hour_local, street, COUNT(*), COUNT(*) FILTER (WHERE max_level >= 4),
+       COALESCE(SUM(delay_s), 0), COALESCE(SUM(speed), 0), COUNT(speed)
+FROM per_street_snap
+GROUP BY hour_local, street
+"""
+
+OLDEST_SNAPSHOT = "SELECT MIN(collected_at) AS first FROM jams"
+
+# --- Leituras a partir do resumo (mesmas colunas das consultas originais) ----
+# Parâmetros: start_local, end_local (hora local, sem fuso).
+
+HOURLY_S = """
+SELECT to_char(hour_local, 'YYYY-MM-DD"T"HH24:00') AS hour,
+       snaps AS snapshots,
+       ROUND(jams_sum::numeric / snaps, 2)              AS avg_jams,
+       ROUND((km_total_sum / snaps)::numeric, 3)        AS avg_km_total,
+       ROUND((km_heavy_sum / snaps)::numeric, 3)        AS avg_km_heavy,
+       ROUND((delay_min_sum / snaps)::numeric, 1)       AS avg_delay_min,
+       flood_alerts, accident_alerts
+FROM hour_summary
+WHERE hour_local >= date_trunc('hour', %(start_local)s::timestamp)
+  AND hour_local <= %(end_local)s
+ORDER BY hour_local
+"""
+
+TYPICAL_WEEK_S = """
+SELECT EXTRACT(DOW FROM hour_local)::int  AS weekday,
+       EXTRACT(HOUR FROM hour_local)::int AS hour,
+       SUM(snaps) AS snapshots,
+       COUNT(DISTINCT hour_local::date) AS days,
+       ROUND((SUM(km_heavy_sum) / SUM(snaps))::numeric, 3) AS avg_km_heavy,
+       ROUND((SUM(km_total_sum) / SUM(snaps))::numeric, 3) AS avg_km_total,
+       ROUND(SUM(jams_sum)::numeric / SUM(snaps), 2)       AS avg_jams
+FROM hour_summary
+WHERE hour_local >= date_trunc('hour', %(start_local)s::timestamp)
+  AND hour_local <= %(end_local)s
+GROUP BY 1, 2
+ORDER BY 1, 2
+"""
+
+TYPICAL_FOR_SLOT_S = """
+SELECT COALESCE(SUM(snaps), 0) AS snapshots,
+       SUM(km_heavy_sum) / NULLIF(SUM(snaps), 0) AS km_heavy,
+       SUM(km_total_sum) / NULLIF(SUM(snaps), 0) AS km_total
+FROM hour_summary
+WHERE hour_local >= date_trunc('hour', %(start_local)s::timestamp)
+  AND hour_local <= %(end_local)s
+  AND EXTRACT(DOW FROM hour_local) = %(dow)s
+  AND EXTRACT(HOUR FROM hour_local) = %(hour)s
+  AND hour_local::date <> %(today)s::date
+"""
+
+STREETS_S = """
+WITH w AS (
+    SELECT * FROM street_hour_summary
+    WHERE hour_local >= date_trunc('hour', %(start_local)s::timestamp)
+      AND hour_local <= %(end_local)s
+),
+total AS (
+    SELECT SUM(snaps)::float AS n FROM hour_summary
+    WHERE hour_local >= date_trunc('hour', %(start_local)s::timestamp)
+      AND hour_local <= %(end_local)s
+),
+heavy_hour AS (
+    SELECT street, EXTRACT(HOUR FROM hour_local)::int AS hour, SUM(snaps_heavy) AS n,
+           ROW_NUMBER() OVER (PARTITION BY street ORDER BY SUM(snaps_heavy) DESC, EXTRACT(HOUR FROM hour_local)) AS rk
+    FROM w
+    WHERE snaps_heavy > 0
+    GROUP BY street, EXTRACT(HOUR FROM hour_local)
+)
+SELECT w.street,
+       ROUND((SUM(w.snaps_heavy) / t.n * 24)::numeric, 2)                       AS heavy_hours_per_day,
+       ROUND((SUM(w.snaps_any) / t.n * 24)::numeric, 2)                         AS any_jam_hours_per_day,
+       ROUND((SUM(w.delay_s_sum) / SUM(w.snaps_any) / 60.0)::numeric, 1)        AS avg_delay_min,
+       ROUND((SUM(w.speed_sum) / NULLIF(SUM(w.speed_n), 0))::numeric, 1)        AS avg_speed_kmh,
+       ROUND((SUM(w.snaps_heavy)::float / SUM(w.snaps_any) * 100)::numeric, 1)  AS heavy_share_pct,
+       SUM(w.snaps_any) AS snapshots_with_jam,
+       MAX(h.hour) AS peak_hour
+FROM w
+CROSS JOIN total t
+LEFT JOIN heavy_hour h ON h.street = w.street AND h.rk = 1
+GROUP BY w.street, t.n
+HAVING SUM(w.snaps_any) >= %(min_snaps)s
+ORDER BY heavy_hours_per_day DESC, any_jam_hours_per_day DESC
+LIMIT %(limit)s
+"""
