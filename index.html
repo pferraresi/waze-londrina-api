@@ -355,6 +355,25 @@ footer.site :focus-visible { outline-color: var(--foot-link); }
 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .skeleton { color: var(--ink-3); }
+/* aviso de cookies (Google Analytics só carrega depois do "Aceitar") */
+.consent {
+  position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 2000;
+  max-width: 560px; margin: 0 auto; padding: 16px 18px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--rule);
+  border-radius: var(--radius-lg); box-shadow: 0 8px 28px rgba(0,0,0,.18);
+  font-size: 14px; line-height: 1.45;
+}
+.consent[hidden] { display: none; }
+.consent p { margin: 0 0 12px; color: var(--ink-2); }
+.consent-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.consent button {
+  font: inherit; font-weight: 600; padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--rule); background: transparent; color: var(--ink);
+}
+.consent button.primary { background: var(--uel); border-color: var(--uel); color: var(--paper); }
+.consent button:focus-visible { outline: 2px solid var(--uel); outline-offset: 2px; }
+.foot-cookies { background: none; border: 0; padding: 0; font: inherit; color: var(--foot-link); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.foot-cookies:hover { color: #ffffff; }
 </style>
 </head>
 <body>
@@ -616,7 +635,7 @@ footer.site :focus-visible { outline-color: var(--foot-link); }
       <p><a id="foot-api" href="#">API pública</a> · <a href="v1/">Versão 1 do painel</a> · <a href="https://github.com/pferraresi/waze-londrina-api" rel="noopener">Código no GitHub</a></p>
     </div>
   </div>
-  <div class="wrap foot-base">Observatório da Mobilidade Urbana de Londrina · UEL · 2026</div>
+  <div class="wrap foot-base"><span>Observatório da Mobilidade Urbana de Londrina · UEL · 2026</span> · <button type="button" class="foot-cookies" id="cookie-prefs">Cookies</button></div>
 </footer>
 
 <script>
@@ -1462,6 +1481,75 @@ loaded.agora = true;
 loadNow().catch(handleErr).finally(() => { if (first !== "agora") openTab(tabs.some(t => t.getAttribute("aria-controls") === first) ? first : "agora", false); });
 openTab("agora", false); loaded.agora = true;
 setInterval(() => { loadNow().catch(handleErr); }, REFRESH_MS);
+})();
+</script>
+<div class="consent" id="consent" role="dialog" aria-live="polite" aria-labelledby="consent-text" hidden>
+  <p id="consent-text"></p>
+  <div class="consent-actions">
+    <button type="button" id="consent-no"></button>
+    <button type="button" class="primary" id="consent-yes"></button>
+  </div>
+</div>
+
+<script>
+// Estatísticas de uso (Google Analytics via Google Tag Manager).
+// Só carrega depois que a pessoa aceita no aviso (LGPD). A escolha fica
+// guardada neste navegador; "Cookies" no rodapé reabre o aviso.
+(() => {
+  "use strict";
+  const GTM_ID = "GTM-WJDBXGJH";
+  const KEY = "observatorio-cookies";      // "sim" | "nao"
+  const EN = new URLSearchParams(location.search).get("lang") === "en";
+  const txt = EN ? {
+    msg: "May we use Google Analytics cookies to count visits and see which sections are used? The statistics are used only to improve this research dashboard.",
+    yes: "Accept", no: "Decline", prefs: "Cookies"
+  } : {
+    msg: "Podemos usar cookies do Google Analytics para contar visitas e saber quais seções são usadas? As estatísticas servem apenas para melhorar este painel de pesquisa.",
+    yes: "Aceitar", no: "Recusar", prefs: "Cookies"
+  };
+  const box = document.getElementById("consent");
+  document.getElementById("consent-text").textContent = txt.msg;
+  document.getElementById("consent-yes").textContent = txt.yes;
+  document.getElementById("consent-no").textContent = txt.no;
+  document.getElementById("cookie-prefs").textContent = txt.prefs;
+
+  const read = () => { try { return localStorage.getItem(KEY); } catch (e) { return null; } };
+  const save = v => { try { localStorage.setItem(KEY, v); } catch (e) {} };
+
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  let loaded = false;
+  function load() {
+    if (loaded) return;
+    loaded = true;
+    gtag("consent", "default", { analytics_storage: "granted", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" });
+    gtag("js", new Date());
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = "https://www.googletagmanager.com/gtm.js?id=" + GTM_ID;
+    document.head.appendChild(s);
+    // qual aba foi aberta (Agora, Quando sair, Ruas críticas, Chuva, Sobre)
+    const first = (location.hash || "#agora").slice(1);
+    gtag("event", "tab_view", { tab: first, language: EN ? "en" : "pt" });
+    document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () =>
+      gtag("event", "tab_view", { tab: t.getAttribute("aria-controls"), language: EN ? "en" : "pt" })));
+    document.getElementById("lang-switch")?.addEventListener("click", () =>
+      gtag("event", "language_switch", { to: EN ? "pt" : "en" }));
+  }
+  function decide(v) {
+    save(v); box.hidden = true;
+    if (v === "sim") load();
+    else if (loaded) {           // recusou depois de ter aceitado: para de medir
+      gtag("consent", "update", { analytics_storage: "denied" });
+    }
+  }
+  document.getElementById("consent-yes").addEventListener("click", () => decide("sim"));
+  document.getElementById("consent-no").addEventListener("click", () => decide("nao"));
+  document.getElementById("cookie-prefs").addEventListener("click", () => { box.hidden = false; document.getElementById("consent-yes").focus(); });
+
+  const choice = read();
+  if (choice === "sim") load();
+  else if (choice !== "nao") box.hidden = false;
 })();
 </script>
 </body>
