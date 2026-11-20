@@ -12,7 +12,7 @@
 <meta name="theme-color" content="#00753B" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Trânsito em Londrina" />
-<meta property="og:description" content="Como está o trânsito de Londrina agora, quando sair, ruas mais congestionadas e efeito da chuva. Observatório da Mobilidade Urbana – UEL." />
+<meta property="og:description" content="Como está o trânsito de Londrina agora, quando sair, ruas mais congestionadas e efeito da chuva. Projeto de Pesquisa Cidades Inteligentes – UEL." />
 <meta property="og:image" content="https://pferraresi.github.io/waze-londrina-api/assets/og-image.png" />
 <meta property="og:url" content="https://pferraresi.github.io/waze-londrina-api/" />
 <meta name="twitter:card" content="summary_large_image" />
@@ -120,6 +120,7 @@ header.site {
   padding: 6px 12px; border-radius: 999px; background: var(--uel-soft);
 }
 .site-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 599px) { .brand-proj { display: none; } }
 .lang-switch {
   font-size: 14px; font-weight: 600; color: var(--ink-2); text-decoration: none;
   padding: 6px 12px; border-radius: 999px; border: 1px solid var(--rule);
@@ -238,6 +239,9 @@ h3 { font-size: 19px; margin: 0 0 4px; font-weight: 700; }
   font-weight: 700; font-size: 13px; box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,.28); cursor: pointer;
 }
 .map-legend label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+/* o .ic é um span: não pode herdar o inline-flex da legenda, senão o desenho sai do centro */
+.map-legend .ic, .legend-row .ic { display: inline-grid; place-items: center; gap: 0; }
+.ic svg { display: block; }
 .map-legend input { width: 16px; height: 16px; accent-color: var(--uel); margin: 0; }
 
 .alert-grid { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
@@ -330,6 +334,13 @@ table.simple td.r, table.simple th.r { text-align: right; }
 
 /* ---------- Sobre ---------- */
 .prose { max-width: 70ch; }
+@media (min-width: 900px) { .side-sticky { position: sticky; top: 140px; } }
+@media (min-width: 1100px) {
+  .prose.cols { max-width: none; column-count: 2; column-gap: 56px; }
+  .prose.cols > * { break-inside: avoid; }
+  .prose.cols h3 { break-after: avoid; }
+  .prose.cols > h2 { column-span: all; }
+}
 .prose p, .prose li { color: var(--ink-2); }
 .prose h3 { margin-top: 28px; }
 dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 12px 0; }
@@ -368,6 +379,7 @@ footer.site :focus-visible { outline-color: var(--foot-link); }
   font-size: 14px; line-height: 1.45;
 }
 .consent[hidden] { display: none; }
+@media (min-width: 900px) { .consent { left: auto; right: 24px; bottom: 24px; margin: 0; max-width: 380px; padding: 14px 16px; font-size: 13px; } }
 .consent p { margin: 0 0 12px; color: var(--ink-2); }
 .consent-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .consent button {
@@ -391,7 +403,7 @@ footer.site :focus-visible { outline-color: var(--foot-link); }
         </span>
         <span>
           <span class="brand-name">Trânsito em Londrina</span><br />
-          <span class="brand-sub">Observatório da Mobilidade Urbana · UEL</span>
+          <span class="brand-sub"><span>Observatório da Mobilidade Urbana</span><span class="brand-proj"> · </span><span class="brand-proj">Projeto de Pesquisa Cidades Inteligentes UEL</span></span>
         </span>
       </a>
       <span class="site-tools">
@@ -486,7 +498,7 @@ footer.site :focus-visible { outline-color: var(--foot-link); }
       <div class="block">
         <ol class="streets" id="streets"></ol>
       </div>
-      <div class="stack">
+      <div class="stack side-sticky">
         <div class="block">
           <h3>Interdições e bloqueios longos</h3>
           <p class="note" style="margin:0 0 8px">Trechos parados (nível 5) há mais de 48 horas, obras conhecidas e ruas em trânsito pesado mais de 12 horas por dia. Não entram no ranking.</p>
@@ -563,7 +575,7 @@ footer.site :focus-visible { outline-color: var(--foot-link); }
 
   <!-- ================= SOBRE ================= -->
   <section class="panel" id="sobre" role="tabpanel" aria-labelledby="t-sobre" hidden>
-    <div class="prose">
+    <div class="prose cols">
       <h2>Sobre os dados</h2>
       <p>Este painel é parte do projeto de pesquisa Governança em Cidades Inteligentes (nº 14408, PROPPG-UEL), da Universidade Estadual de Londrina. Os dados vêm do programa <a href="https://www.waze.com/wazeforcities/" rel="noopener">Waze for Cities</a>, que compartilha com a cidade os congestionamentos detectados pelo aplicativo e os alertas enviados por motoristas.</p>
 
@@ -630,7 +642,7 @@ footer.site :focus-visible { outline-color: var(--foot-link); }
       <p><a id="foot-api" href="#">API pública</a> · <a href="v1/">Versão 1 do painel</a> · <a href="https://github.com/pferraresi/waze-londrina-api" rel="noopener">Código no GitHub</a></p>
     </div>
   </div>
-  <div class="wrap foot-base"><span>Observatório da Mobilidade Urbana de Londrina · UEL · 2026</span> · <button type="button" class="foot-cookies" id="cookie-prefs">Cookies</button></div>
+  <div class="wrap foot-base"><span>Observatório da Mobilidade Urbana de Londrina · Projeto de Pesquisa Cidades Inteligentes UEL · 2026</span> · <button type="button" class="foot-cookies" id="cookie-prefs">Cookies</button></div>
 </footer>
 
 <script>
@@ -660,10 +672,11 @@ const STATIC_EN = {
 "Mapa: © colaboradores do OpenStreetMap": "Map: © OpenStreetMap contributors",
 "Versão 1 do painel": "Dashboard version 1",
 "Código no GitHub": "Code on GitHub",
-"Observatório da Mobilidade Urbana de Londrina · UEL · 2026": "Londrina Urban Mobility Observatory · UEL · 2026",
+"Observatório da Mobilidade Urbana de Londrina · Projeto de Pesquisa Cidades Inteligentes UEL · 2026": "Londrina Urban Mobility Observatory · UEL Smart Cities Research Project · 2026",
 "Rodapé": "Footer",
 "Trânsito em Londrina": "Traffic in Londrina",
-"Observatório da Mobilidade Urbana · UEL": "Urban Mobility Observatory · UEL",
+"Observatório da Mobilidade Urbana": "Urban Mobility Observatory",
+"Projeto de Pesquisa Cidades Inteligentes UEL": "UEL Smart Cities Research Project",
 "Carregando dados…": "Loading data…",
 "Agora": "Now",
 "Quando sair": "When to go",
@@ -800,8 +813,8 @@ const hr = h => EN ? `${String(h).padStart(2, "0")}:00` : `${h}h`;
 const dm = (d, m) => EN ? `${+d} ${MONTHS_SHORT[+m - 1]}` : `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
 const LEVELS = [
   { n: 1, name: T("Leve", "Light"), desc: T("Trânsito um pouco mais lento que o normal", "A little slower than usual") },
-  { n: 2, name: T("Moderado", "Moderate"), desc: T("Lento", "Slow") },
-  { n: 3, name: T("Lento", "Slow"), desc: T("Bem lento, com paradas", "Very slow, with stops") },
+  { n: 2, name: T("Moderado", "Moderate"), desc: T("Lentidão perceptível, mas o trânsito anda", "Noticeably slow, but moving") },
+  { n: 3, name: T("Lento", "Slow"), desc: T("Bem lento, com paradas curtas", "Very slow, with short stops") },
   { n: 4, name: T("Pesado", "Heavy"), desc: T("Muito lento, anda e para", "Stop-and-go") },
   { n: 5, name: T("Parado", "Standstill"), desc: T("Trânsito parado ou via bloqueada", "Traffic stopped or road blocked") },
 ];
@@ -1202,7 +1215,7 @@ async function loadQuando() {
     }
   }
   $("#heat").innerHTML = html;
-  $("#ramp").innerHTML = `<span>${T("Menos", "Less")}</span><span class="bar">${ramp.map(c => `<i style="background:${c}"></i>`).join("")}</span><span>${T("Mais trânsito pesado", "More heavy traffic")}</span>`;
+  $("#ramp").innerHTML = `<span>${T("até", "up to")} ${nf(cuts[0])} km</span><span class="bar">${ramp.map(c => `<i style="background:${c}"></i>`).join("")}</span><span>${nf(cuts[cuts.length - 1])} km ${T("ou mais em trânsito pesado", "or more in heavy traffic")}</span>`;
   const tip = (d, h) => {
     const r = cell[`${d}-${h}`]; if (!r) return;
     const avgDay = week.filter(x => x.weekday === d);
@@ -1228,13 +1241,23 @@ async function loadQuando() {
     let advice = T("Ainda não há dados suficientes para este dia.", "There isn't enough data for this day yet.");
     if (day.length) {
       const worst = day.reduce((a, b) => b[0] > a[0] ? b : a);
-      const near = valid.filter(([, h]) => h !== worst[1] && Math.abs(h - worst[1]) <= 2);
-      const best = near.length ? near.reduce((a, b) => b[0] < a[0] ? b : a) : null;
-      const pct = best && worst[0] ? (1 - best[0] / worst[0]) * 100 : 0;
+      // melhor horário até 2 h antes e até 2 h depois do pior
+      const pick = side => {
+        const c = valid.filter(([, h]) => side * (h - worst[1]) > 0 && Math.abs(h - worst[1]) <= 2);
+        if (!c.length || !worst[0]) return null;
+        const b = c.reduce((x, y) => y[0] < x[0] ? y : x);
+        const pct = (1 - b[0] / worst[0]) * 100;
+        return pct >= 15 ? { h: b[1], pct } : null;
+      };
+      const opts = [pick(-1), pick(1)].filter(Boolean);
+      const amount = o => o.pct >= 85 ? T("<b>bem menos</b>", "<b>much less</b>") : T(`cerca de <b>${nf(o.pct, 0)}% menos</b>`, `about <b>${nf(o.pct, 0)}% less</b>`);
       advice = T(`${dow2(d)}, o pior horário costuma ser <b>${hr(worst[1])}</b>.`, `On ${DAYS_FULL[d]}s, the worst time is usually <b>${hr(worst[1])}</b>.`);
-      if (best && pct >= 15) advice += EN
-        ? ` ${best[1] < worst[1] ? "Leaving earlier" : "Leaving later"}, at <b>${hr(best[1])}</b>, you'll find ${pct >= 85 ? "<b>much less</b>" : `about <b>${nf(pct, 0)}% less</b>`} heavy traffic.`
-        : ` ${best[1] < worst[1] ? "Antecipando" : "Adiando"} a saída para <b>${hr(best[1])}</b>, você encontra ${pct >= 85 ? "<b>bem menos</b>" : `cerca de <b>${nf(pct, 0)}% menos</b>`} trânsito pesado.`;
+      if (opts.length === 2) advice += T(
+        ` Saindo às <b>${hr(opts[0].h)}</b> você encontra ${amount(opts[0])} trânsito pesado; às <b>${hr(opts[1].h)}</b>, ${amount(opts[1])}.`,
+        ` Leave at <b>${hr(opts[0].h)}</b> and you'll find ${amount(opts[0])} heavy traffic; at <b>${hr(opts[1].h)}</b>, ${amount(opts[1])}.`);
+      else if (opts.length === 1) advice += T(
+        ` ${opts[0].h < worst[1] ? "Antecipando" : "Adiando"} a saída para <b>${hr(opts[0].h)}</b>, você encontra ${amount(opts[0])} trânsito pesado.`,
+        ` ${opts[0].h < worst[1] ? "Leaving earlier" : "Leaving later"}, at <b>${hr(opts[0].h)}</b>, you'll find ${amount(opts[0])} heavy traffic.`);
     }
     $("#advice").innerHTML = advice;
     const maxH = valid.length ? valid.reduce((a, b) => b[0] > a[0] ? b : a)[1] : -1;
