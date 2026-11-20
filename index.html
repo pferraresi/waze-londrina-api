@@ -1492,12 +1492,12 @@ setInterval(() => { loadNow().catch(handleErr); }, REFRESH_MS);
 </div>
 
 <script>
-// Estatísticas de uso (Google Analytics via Google Tag Manager).
+// Estatísticas de uso (Google Analytics 4, gtag.js).
 // Só carrega depois que a pessoa aceita no aviso (LGPD). A escolha fica
 // guardada neste navegador; "Cookies" no rodapé reabre o aviso.
 (() => {
   "use strict";
-  const GTM_ID = "GTM-WJDBXGJH";
+  const GA_ID = "G-LYYMQQ8QP5";
   const KEY = "observatorio-cookies";      // "sim" | "nao"
   const EN = new URLSearchParams(location.search).get("lang") === "en";
   const txt = EN ? {
@@ -1524,9 +1524,10 @@ setInterval(() => { loadNow().catch(handleErr); }, REFRESH_MS);
     loaded = true;
     gtag("consent", "default", { analytics_storage: "granted", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" });
     gtag("js", new Date());
+    gtag("config", GA_ID, { anonymize_ip: true });
     const s = document.createElement("script");
     s.async = true;
-    s.src = "https://www.googletagmanager.com/gtm.js?id=" + GTM_ID;
+    s.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID;
     document.head.appendChild(s);
     // qual aba foi aberta (Agora, Quando sair, Ruas críticas, Chuva, Sobre)
     const first = (location.hash || "#agora").slice(1);
