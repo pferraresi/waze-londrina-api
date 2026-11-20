@@ -305,6 +305,8 @@ h3 { font-size: 19px; margin: 0 0 4px; font-weight: 700; }
 .streets .track { grid-column: 1 / -1; height: 8px; background: var(--rule); border-radius: 4px; overflow: hidden; }
 .streets .track i { display: block; height: 100%; background: var(--l4); border-radius: 4px; }
 .streets .meta { grid-column: 1 / -1; font-size: 14px; color: var(--ink-3); }
+.streets .bus { grid-column: 1 / -1; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-2); }
+.streets .bus svg { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--rain); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 table.simple { width: 100%; border-collapse: collapse; font-size: 15px; }
 table.simple th { text-align: left; font-weight: 600; color: var(--ink-3); font-size: 13px; padding: 6px 8px 6px 0; border-bottom: 1px solid var(--rule); }
@@ -488,6 +490,7 @@ footer.site :focus-visible { outline-color: var(--foot-link); }
   <section class="panel" id="ruas" role="tabpanel" aria-labelledby="t-ruas" hidden>
     <h2>Ruas que mais ficam paradas</h2>
     <p class="panel-intro">Quantas horas por dia, em média, cada rua passou com trânsito pesado (níveis 4 e 5 do Waze). Obras longas, interdições e o lazer de domingo ficam de fora para não distorcer o ranking.</p>
+    <p class="note" id="bus-note" style="margin:10px 0 14px" hidden></p>
     <div class="toolbar">
       <div class="seg" role="group" aria-label="Período" id="streets-period">
         <button data-days="7" aria-pressed="true">Últimos 7 dias</button>
@@ -638,6 +641,7 @@ footer.site :focus-visible { outline-color: var(--foot-link); }
       <h2 class="foot-h">Dados e código</h2>
       <p>Congestionamentos e alertas: Waze for Cities</p>
       <p>Chuva: Open-Meteo (previsão) e IAPAR (medida)</p>
+      <p>Ônibus: programação da CMTU (GTFS)</p>
       <p>Mapa: © colaboradores do OpenStreetMap</p>
       <p><a id="foot-api" href="#">API pública</a> · <a href="v1/">Versão 1 do painel</a> · <a href="https://github.com/pferraresi/waze-londrina-api" rel="noopener">Código no GitHub</a></p>
     </div>
@@ -702,6 +706,7 @@ const STATIC_EN = {
 "Trechos parados (nível 5) há mais de 48 horas, ou obras conhecidas. Não entram no ranking.": "Stretches at a standstill (level 5) for more than 48 hours, or known roadworks. They are not ranked.",
 "Rua": "Street",
 "Desde": "Since",
+"Ônibus: programação da CMTU (GTFS)": "Buses: CMTU timetable (GTFS)",
 "Trechos parados (nível 5) há mais de 48 horas, obras conhecidas e ruas em trânsito pesado mais de 12 horas por dia. Não entram no ranking.": "Stretches at a standstill (level 5) for more than 48 hours, known roadworks and streets in heavy traffic for more than 12 hours a day. They are left out of the ranking.",
 "Buracos relatados": "Reported potholes",
 "Ruas com mais alertas de buraco no período, enviados por motoristas.": "Streets with the most pothole alerts from drivers in the period.",
@@ -1280,11 +1285,50 @@ async function loadQuando() {
 
 // ------------------------------------------------------------ RUAS
 const BLOCK_HOURS = 12;
+
+// Ônibus por rua: viagens programadas com parada na rua num dia útil (GTFS da
+// CMTU, gerado por scripts/gtfs_onibus_por_rua.py). O casamento com o nome do
+// Waze usa a mesma chave normalizada do script.
+const BUS_URL = qs.get("onibus") || "data/onibus-por-rua.json";
+const BUS_TIPOS = new Set("rua r avenida av rodovia rod marginal marg travessa tv alameda al praca pc pca estrada estr viaduto via".split(" "));
+const BUS_TIRAR = new Set(("prof professor profa professora dr doutor dra doutora pref prefeito pres presidente gov governador sen senador dep deputado " +
+  "eng engenheiro cel coronel gen general mal marechal pe padre fr frei ver vereador des desembargador min ministro cap capitao ten tenente " +
+  "maj major brig brigadeiro alm almirante d de da do das dos e").split(" "));
+function busKey(nome) {
+  let s = (nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (!/\b(pr|br|sp)[\s-]*\d+\s*$/.test(s)) s = s.replace(/\s+\d+[a-z]?\s*$/, "");
+  let w = s.replace(/[^a-z0-9¿]+/g, " ").trim().split(" ").filter(Boolean);
+  while (w.length && BUS_TIPOS.has(w[0])) w.shift();
+  return w.filter(x => !BUS_TIRAR.has(x)).join(" ");
+}
+let busData = null;
+const getBus = () => (busData ||= fetch(BUS_URL).then(r => r.ok ? r.json() : null).catch(() => null));
+function busFor(data, street) {
+  if (!data) return null;
+  const k = busKey(street), R = data.ruas;
+  if (R[k]) return R[k];
+  // nome com acento corrompido no arquivo da CMTU ("b¿lgica"): "¿" vale uma letra
+  for (const key in R) if (key.includes("¿") && new RegExp("^" + key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/¿/g, ".") + "$").test(k)) return R[key];
+  // nome mais curto num dos lados ("ayrton senna" ↔ "ayrton senna silva"), com pelo menos 2 palavras
+  if (k.split(" ").length >= 2) for (const key in R) {
+    if (key.split(" ").length < 2) continue;
+    if (k.startsWith(key + " ") || key.startsWith(k + " ")) return R[key];
+  }
+  return null;
+}
+const BUS_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17h12M5 6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v11H5zM5 11h14M8 20v-3M16 20v-3"/></svg>`;
 async function loadRuas(days = 7) {
   $("#streets").innerHTML = `<li class="empty">${T("Carregando…", "Loading…")}</li>`;
-  let [streets, inter, alerts] = await Promise.all([
-    get(`/public/streets?days=${days}&limit=25`), get("/public/interdicoes"), get(`/public/alerts?days=${days}`),
+  let [streets, inter, alerts, bus] = await Promise.all([
+    get(`/public/streets?days=${days}&limit=25`), get("/public/interdicoes"), get(`/public/alerts?days=${days}`), getBus(),
   ]);
+  if (bus) {
+    const [y, m, d] = bus.dia_util_referencia.split("-");
+    $("#bus-note").hidden = false;
+    $("#bus-note").innerHTML = T(
+      `${BUS_SVG.replace("<svg", '<svg style="width:15px;height:15px;vertical-align:-3px;fill:none;stroke:var(--rain);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"')} Ônibus: viagens programadas com parada na rua num dia útil, segundo a programação da CMTU (${MONTHS_SHORT[+m - 1]}/${y}). Mostra quanta gente que depende do transporte coletivo passa pelo congestionamento.`,
+      `${BUS_SVG.replace("<svg", '<svg style="width:15px;height:15px;vertical-align:-3px;fill:none;stroke:var(--rain);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"')} Buses: scheduled trips stopping on the street on a weekday, from the CMTU timetable (${MONTHS_SHORT[+m - 1]} ${y}). It shows how many public transport users pass through the congestion.`);
+  }
   // Rua em trânsito pesado mais de 12 h por dia, em média, não é congestionamento:
   // é obra ou bloqueio que alterna entre os níveis 4 e 5. Vai para a lista de bloqueios.
   const blocked = streets.filter(s => s.heavy_hours_per_day >= BLOCK_HOURS);
@@ -1296,6 +1340,7 @@ async function loadRuas(days = 7) {
       <span class="val">${hhmm(s.heavy_hours_per_day)}${T("/dia", "/day")}</span>
       <span class="track" aria-hidden="true"><i style="width:${(s.heavy_hours_per_day / max * 100).toFixed(1)}%"></i></span>
       <span class="meta">${T("Pior por volta das", "Worst around")} ${s.peak_hour != null ? hr(s.peak_hour) : "–"} · ${s.avg_speed_kmh ? nf(s.avg_speed_kmh, 0) + T(" km/h quando lenta", " km/h when slow") : ""}${s.avg_delay_min ? ` · +${nf(s.avg_delay_min, 0)} ${T("min de atraso típico", "min typical delay")}` : ""}</span>
+      ${(b => b ? `<span class="bus">${BUS_SVG}${nf(b.viagens, 0)} ${T("viagens de ônibus por dia útil", "bus trips per weekday")} · ${b.linhas} ${b.linhas === 1 ? T("linha", "route") : T("linhas", "routes")}</span>` : "")(busFor(bus, s.street))}
     </li>`).join("") : `<li class="empty">${T("Sem dados suficientes no período.", "Not enough data for this period.")}</li>`;
   // uma linha por rua (um bloqueio pode ter vários trechos), com a data mais antiga
   const byStreet = new Map();
