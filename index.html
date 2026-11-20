@@ -1326,8 +1326,8 @@ async function loadRuas(days = 7) {
     const [y, m, d] = bus.dia_util_referencia.split("-");
     $("#bus-note").hidden = false;
     $("#bus-note").innerHTML = T(
-      `${BUS_SVG.replace("<svg", '<svg style="width:15px;height:15px;vertical-align:-3px;fill:none;stroke:var(--rain);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"')} Ônibus: viagens programadas com parada na rua num dia útil, segundo a programação da CMTU (${MONTHS_SHORT[+m - 1]}/${y}). Mostra quanta gente que depende do transporte coletivo passa pelo congestionamento.`,
-      `${BUS_SVG.replace("<svg", '<svg style="width:15px;height:15px;vertical-align:-3px;fill:none;stroke:var(--rain);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"')} Buses: scheduled trips stopping on the street on a weekday, from the CMTU timetable (${MONTHS_SHORT[+m - 1]} ${y}). It shows how many public transport users pass through the congestion.`);
+      `${BUS_SVG.replace("<svg", '<svg style="width:15px;height:15px;vertical-align:-3px;fill:none;stroke:var(--rain);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"')} Ônibus: viagens programadas com parada na rua num dia útil, segundo a programação da CMTU (${MONTHS_SHORT[+m - 1]}/${y}). Pico: 7h–9h, 12h–14h e 17h–19h. Mostra quanta gente que depende do transporte coletivo passa pelo congestionamento.`,
+      `${BUS_SVG.replace("<svg", '<svg style="width:15px;height:15px;vertical-align:-3px;fill:none;stroke:var(--rain);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"')} Buses: scheduled trips stopping on the street on a weekday, from the CMTU timetable (${MONTHS_SHORT[+m - 1]} ${y}). Peak times: 7–9 am, 12–2 pm and 5–7 pm. It shows how many public transport users pass through the congestion.`);
   }
   // Rua em trânsito pesado mais de 12 h por dia, em média, não é congestionamento:
   // é obra ou bloqueio que alterna entre os níveis 4 e 5. Vai para a lista de bloqueios.
@@ -1340,7 +1340,7 @@ async function loadRuas(days = 7) {
       <span class="val">${hhmm(s.heavy_hours_per_day)}${T("/dia", "/day")}</span>
       <span class="track" aria-hidden="true"><i style="width:${(s.heavy_hours_per_day / max * 100).toFixed(1)}%"></i></span>
       <span class="meta">${T("Pior por volta das", "Worst around")} ${s.peak_hour != null ? hr(s.peak_hour) : "–"} · ${s.avg_speed_kmh ? nf(s.avg_speed_kmh, 0) + T(" km/h quando lenta", " km/h when slow") : ""}${s.avg_delay_min ? ` · +${nf(s.avg_delay_min, 0)} ${T("min de atraso típico", "min typical delay")}` : ""}</span>
-      ${(b => b ? `<span class="bus">${BUS_SVG}${nf(b.viagens, 0)} ${T("viagens de ônibus por dia útil", "bus trips per weekday")} · ${b.linhas} ${b.linhas === 1 ? T("linha", "route") : T("linhas", "routes")}</span>` : "")(busFor(bus, s.street))}
+      ${(b => b ? `<span class="bus">${BUS_SVG}<span>${T(`<b>${nf(b.viagens, 0)}</b> viagens de ônibus por dia útil${b.pico != null ? `, <b>${nf(b.pico, 0)}</b> nos horários de pico` : ""}`, `<b>${nf(b.viagens, 0)}</b> bus trips per weekday${b.pico != null ? `, <b>${nf(b.pico, 0)}</b> at peak times` : ""}`)} · ${b.linhas} ${b.linhas === 1 ? T("linha", "route") : T("linhas", "routes")}</span></span>` : "")(busFor(bus, s.street))}
     </li>`).join("") : `<li class="empty">${T("Sem dados suficientes no período.", "Not enough data for this period.")}</li>`;
   // uma linha por rua (um bloqueio pode ter vários trechos), com a data mais antiga
   const byStreet = new Map();

@@ -1,6 +1,7 @@
 """
 Conta, a partir do GTFS da CMTU, quantas viagens de ônibus param em cada rua
-num dia útil típico. Gera data/onibus-por-rua.json, lido pela aba "Ruas
+num dia útil típico, e quantas delas nos horários de pico (7h–9h, 12h–14h e
+17h–19h, como no artigo). Gera data/onibus-por-rua.json, lido pela aba "Ruas
 críticas" do painel.
 
 Uso:
@@ -36,6 +37,13 @@ TITULOS = {"prof", "professor", "profa", "professora", "dr", "doutor", "dra", "d
            "desembargador", "min", "ministro", "cap", "capitao", "ten", "tenente", "maj",
            "major", "brig", "brigadeiro", "alm", "almirante", "d"}
 LIGACOES = {"de", "da", "do", "das", "dos", "e"}
+# horários de pico, os mesmos do artigo: 7h–9h, 12h–14h e 17h–19h (dias úteis)
+PICO = [("07:00:00", "08:59:59"), ("12:00:00", "13:59:59"), ("17:00:00", "18:59:59")]
+
+
+def no_pico(hora):
+    hora = hora.strip().zfill(8)
+    return any(a <= hora <= b for a, b in PICO)
 
 
 def chave(nome):
@@ -100,6 +108,7 @@ def main(caminho, dia_ref=None):
         return corrige.get(k, k)
 
     viagens = defaultdict(set)
+    pico = defaultdict(set)
     linhas = defaultdict(set)
     nomes = defaultdict(lambda: defaultdict(int))
     with z.open("stop_times.txt") as f:
@@ -111,11 +120,13 @@ def main(caminho, dia_ref=None):
             if not k:
                 continue
             viagens[k].add(st["trip_id"])
+            if no_pico(st["departure_time"] or st["arrival_time"]):
+                pico[k].add(st["trip_id"])
             linhas[k].add(rota)
             nomes[k][paradas[st["stop_id"]]] += 1
 
     ruas = {
-        k: {"viagens": len(v), "linhas": len(linhas[k]),
+        k: {"viagens": len(v), "pico": len(pico[k]), "linhas": len(linhas[k]),
             "nome_cmtu": max(nomes[k].items(), key=lambda x: x[1])[0]}
         for k, v in sorted(viagens.items(), key=lambda x: -len(x[1]))
     }
@@ -123,7 +134,8 @@ def main(caminho, dia_ref=None):
         "fonte": "CMTU Londrina, GTFS (programação do transporte coletivo)",
         "validade_arquivo": f"{ini[:4]}-{ini[4:6]}-{ini[6:]} a {fim[:4]}-{fim[4:6]}-{fim[6:]}",
         "dia_util_referencia": dia.isoformat(),
-        "metodo": "viagens programadas com pelo menos uma parada na rua, no dia de referência",
+        "metodo": "viagens programadas com pelo menos uma parada na rua, no dia de referência; "
+                  "pico = viagens que param na rua entre 7h e 9h, 12h e 14h ou 17h e 19h",
         "ruas": ruas,
     }
     with open("data/onibus-por-rua.json", "w", encoding="utf-8") as f:
